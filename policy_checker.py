@@ -8,7 +8,7 @@ import json
 
 # Variable containing name of policy file to validate.
 # Change when necessary.
-filename = "test_policy.json"
+filename = "test-policy.json"
 
 # Load JSON policy file.
 with open(filename, "r") as file:

@@ -1,6 +1,6 @@
 # Policy File Validator (policy_checker.py)
 
-This script loads an AWS policy file and checks if it is overly permisssive.
+This script loads an AWS policy file and checks if it is overly permissive.
 
 ## Usage
 

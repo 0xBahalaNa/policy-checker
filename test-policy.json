@@ -11,7 +11,13 @@
         "Resource": "arn:aws:s3:::my-bucket/*"
       },
       {
-        "Sid": "DangerousAdmin",
+        "Sid": "DangerousAdmin01",
+        "Effect": "Allow",
+        "Action": "*",
+        "Resource": "*"
+      },
+      {
+        "Sid": "DangerousAdmin02",
         "Effect": "Allow",
         "Action": "*",
         "Resource": "*"

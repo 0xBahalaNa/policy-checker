@@ -23,14 +23,22 @@ issues = 0
 for statement in policy.get("Statement", []):
 
     # Check if "Action" is overly permissive.
-    if statement.get("Action") == "*":
+    action = statement.get("Action")
+    if isinstance(action, str) and action == "*":
+        print(f"[FAIL] Statement \"{statement.get('Sid')}\": Action is \"*\"")
+        issues += 1
+    elif isinstance(action, list) and "*" in action:
         print(f"[FAIL] Statement \"{statement.get('Sid')}\": Action is \"*\"")
         issues += 1
 
     # Check if "Resource" is overly permissive 
-    if statement.get("Resource") == "*":
+    resource = statement.get("Resource")
+    if isinstance(resource, str) and resource == "*":
         print(f"[FAIL] Statement \"{statement.get('Sid')}\": Resource is \"*\"")
         issues += 1
+    elif isinstance(resource, list) and "*" in resource:
+        print(f"[FAIL] Statement \"{statement.get('Sid')}\": Resource is \"*\"")
+        issues += 1   
 
 # Print final results. 
 print(f"\nResults: {issues} issues found.")

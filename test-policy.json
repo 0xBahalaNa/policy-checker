@@ -21,6 +21,12 @@
         "Effect": "Allow",
         "Action": "*",
         "Resource": "*"
-      }
+      },
+      {
+        "Sid": "DenyAll",
+        "Effect": "Deny",
+        "Action": "*",
+        "Resource": "*"
+      }  
     ]
   }

@@ -21,6 +21,11 @@ issues = 0
 
 # Loop to iterate through all the policy statements.
 for statement in policy.get("Statement", []):
+    
+    # Check if "Effect" is Deny - continue if so.
+    effect = statement.get("Effect")
+    if effect == "Deny":
+        continue
 
     # Check if "Action" is overly permissive.
     action = statement.get("Action")
@@ -38,7 +43,7 @@ for statement in policy.get("Statement", []):
         issues += 1
     elif isinstance(resource, list) and "*" in resource:
         print(f"[FAIL] Statement \"{statement.get('Sid')}\": Resource is \"*\"")
-        issues += 1   
+        issues += 1
 
 # Print final results. 
 print(f"\nResults: {issues} issues found.")

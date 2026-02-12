@@ -5,7 +5,9 @@ This script loads an AWS IAM policy JSON file and checks for overly permissive s
 such as wildcard ("*") Actions or Resources.
 
 Exit codes:
-    2 - Input error (file not found, invalid JSON, permission denied)
+    0 - Policy is clean, no issues found
+    1 - Issues detected
+    2 - Input error (file not found, invalid JSON, etc.)
 """
 
 import argparse
@@ -77,3 +79,5 @@ for statement in policy.get("Statement", []):
 
 # Print the final results.
 print(f"\nResults: {issues} issues found.")
+
+sys.exit(1 if issues > 0 else 0)

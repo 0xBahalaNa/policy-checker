@@ -14,82 +14,111 @@ import argparse
 import json
 import sys
 
-# Create a parser variable with a description of the tool.
-parser = argparse.ArgumentParser(description="Check an AWS IAM policy JSON file for overly permissive statements.")
+def check_policy(policy):
+    """
+    Check a parsed IAM policy dictionary for overly permissive statements.
 
-# Add a positional argument for the file name.
-parser.add_argument("filename", help="Path to the JSON policy file.")
+    Args:
+        policy: A dictionary representing a parsed IAM policy JSON.
 
-# Parse the command-line arguments.
-args = parser.parse_args()
+    Returns:
+        A list of finding dictionaries, each with keys:
+            "severity" - "FAIL" or "WARN"
+            "sid"      - The statement's Sid (or None if missing)
+            "message"  - A human-readable description of the issue
+    """
+    findings = []
 
-filename = args.filename
+    for statement in policy.get("Statement", []):
 
-# Attempt to open and parse the JSON policy file.
-# Each `except` block handles a different type of error that could occur.
-try:
-    with open(filename, "r") as file:
-        policy = json.load(file)
-except FileNotFoundError:
-    print(f"{filename} doesn't exist.", file=sys.stderr)
-    sys.exit(2)
-except json.JSONDecodeError:
-    print(f"{filename} contains invalid JSON.", file=sys.stderr)
-    sys.exit(2)
-except PermissionError:
-    print(f"{filename} can't be read.", file=sys.stderr)
-    sys.exit(2)
+        # Skip "Deny" statements - they restrict access rather than grant it,
+        # so wildcards in Deny statements are not a security concern.
+        effect = statement.get("Effect")
+        if effect == "Deny":
+            continue
 
-print(f"Checking: {filename}")
+        sid = statement.get("Sid")
 
-# Counter to track how many issues are found.
-issues = 0
+        # Check if "Action" is a wildcard ("*"), meaning all actions are allowed.
+        # The value can be either a single string or a list of strings,
+        # so we check for both cases using isinstance().
+        action = statement.get("Action")
+        if isinstance(action, str) and action == "*":
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "Action is \"*\""
+            })
+        elif isinstance(action, list) and "*" in action:
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "Action is \"*\""
+            })
 
-# Iterate through each statement in the policy.
-# .get() returns a default (here, an empty list) if the key is missing,
-# which avoids a KeyError.
-for statement in policy.get("Statement", []):
-    
-    # Skip "Deny" statements — they restrict access rather than grant it,
-    # so wildcards in Deny statements are not a security concern.
-    effect = statement.get("Effect")
-    if effect == "Deny":
-        continue
+        # Check for service-level wildcards (e.g., "s3:*", "iam:*").
+        # These grant full access to a specific AWS service, which is risky
+        # but less severe than a full "*" wildcard.
+        if isinstance(action, str) and action.endswith(":*"):
+            findings.append({
+                "severity": "WARN",
+                "sid": sid,
+                "message": f"Action \"{action}\" grants full access to a service"
+            })
+        elif isinstance(action, list):
+            for item in action:
+                if isinstance(item, str) and item.endswith(":*"):
+                    findings.append({
+                        "severity": "WARN",
+                        "sid": sid,
+                        "message": f"Action \"{item}\" grants full access to a service"
+                    })
 
-    # Check if "Action" is a wildcard ("*"), meaning all actions are allowed.
-    # The value can be either a single string or a list of strings,
-    # so we check for both cases using isinstance().
-    action = statement.get("Action")
-    if isinstance(action, str) and action == "*":
-        print(f"[FAIL] Statement \"{statement.get('Sid')}\": Action is \"*\"")
-        issues += 1
-    elif isinstance(action, list) and "*" in action:
-        print(f"[FAIL] Statement \"{statement.get('Sid')}\": Action is \"*\"")
-        issues += 1
-        
-    # Check for service-level wildcards (e.g., "s3:*", "iam:*").
-    # These grant full access to a specific AWS service, which is risky
-    # but less severe than a full "*" wildcard.
-    if isinstance(action, str) and action.endswith(":*"):
-        print(f"[WARN] Statement \"{statement.get('Sid')}\": Action \"{action}\" grants full access to a service")
-        issues += 1
-    elif isinstance(action, list):
-        for item in action:
-            if isinstance(item, str) and item.endswith(":*"):
-                print(f"[WARN] Statement \"{statement.get('Sid')}\": Action \"{item}\" grants full access to a service")
-                issues += 1
+        # Check if "Resource" is a wildcard ("*"), meaning all resources are affected.
+        # Same string-or-list check as above.
+        resource = statement.get("Resource")
+        if isinstance(resource, str) and resource == "*":
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "Resource is \"*\""
+            })
+        elif isinstance(resource, list) and "*" in resource:
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "Resource is \"*\""
+            })
 
-    # Check if "Resource" is a wildcard ("*"), meaning all resources are affected.
-    # Same string-or-list check as above.
-    resource = statement.get("Resource")
-    if isinstance(resource, str) and resource == "*":
-        print(f"[FAIL] Statement \"{statement.get('Sid')}\": Resource is \"*\"")
-        issues += 1
-    elif isinstance(resource, list) and "*" in resource:
-        print(f"[FAIL] Statement \"{statement.get('Sid')}\": Resource is \"*\"")
-        issues += 1
+    return findings
 
-# Print the final results.
-print(f"\nResults: {issues} issues found.")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Check an AWS IAM policy JSON file for overly permissive statements."
+    )
+    parser.add_argument("filename", help="Path to the JSON policy file.")
+    args = parser.parse_args()
+    filename = args.filename
 
-sys.exit(1 if issues > 0 else 0)
+    try:
+        with open(filename, "r") as file:
+            policy = json.load(file)
+    except FileNotFoundError:
+        print(f"{filename} doesn't exist.", file=sys.stderr)
+        sys.exit(2)
+    except json.JSONDecodeError:
+        print(f"{filename} contains invalid JSON.", file=sys.stderr)
+        sys.exit(2)
+    except PermissionError:
+        print(f"{filename} can't be read.", file=sys.stderr)
+        sys.exit(2)
+
+    print(f"Checking: {filename}")
+
+    findings = check_policy(policy)
+
+    for finding in findings:
+        print(f"[{finding['severity']}] Statement \"{finding['sid']}\": {finding['message']}")
+
+    print(f"\nResults: {len(findings)} issues found.")
+    sys.exit(1 if findings else 0)

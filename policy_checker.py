@@ -66,6 +66,18 @@ for statement in policy.get("Statement", []):
     elif isinstance(action, list) and "*" in action:
         print(f"[FAIL] Statement \"{statement.get('Sid')}\": Action is \"*\"")
         issues += 1
+        
+    # Check for service-level wildcards (e.g., "s3:*", "iam:*").
+    # These grant full access to a specific AWS service, which is risky
+    # but less severe than a full "*" wildcard.
+    if isinstance(action, str) and action.endswith(":*"):
+        print(f"[WARN] Statement \"{statement.get('Sid')}\": Action \"{action}\" grants full access to a service")
+        issues += 1
+    elif isinstance(action, list):
+        for item in action:
+            if isinstance(item, str) and item.endswith(":*"):
+                print(f"[WARN] Statement \"{statement.get('Sid')}\": Action \"{item}\" grants full access to a service")
+                issues += 1
 
     # Check if "Resource" is a wildcard ("*"), meaning all resources are affected.
     # Same string-or-list check as above.

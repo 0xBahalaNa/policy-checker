@@ -1,19 +1,27 @@
 """
 policy_checker.py
 
-Loads an AWS IAM policy JSON file and checks for overly permissive
-statements, such as wildcard ("*") Actions or Resources.
+This script loads an AWS IAM policy JSON file and checks for overly permissive statements, 
+such as wildcard ("*") Actions or Resources.
 
 Exit codes:
     2 - Input error (file not found, invalid JSON, permission denied)
 """
 
+import argparse
 import json
 import sys
 
-# Default policy file to validate. Change this or extend with argparse
-# to accept a filename as a command-line argument.
-filename = "test-policy.json"
+# Create a parser variable with a description of the tool.
+parser = argparse.ArgumentParser(description="Check an AWS IAM policy JSON file for overly permissive statements.")
+
+# Add a positional argument for the file name.
+parser.add_argument("filename", help="Path to the JSON policy file.")
+
+# Parse the command-line arguments.
+args = parser.parse_args()
+
+filename = args.filename
 
 # Attempt to open and parse the JSON policy file.
 # Each `except` block handles a different type of error that could occur.

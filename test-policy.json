@@ -27,7 +27,19 @@
         "Effect": "Deny",
         "Action": "*",
         "Resource": "*"
-      }  
+      },
+      {
+        "Sid": "ServiceWildcardList",
+        "Effect": "Allow",
+        "Action": ["s3:GetObject", "iam:*"],
+        "Resource": "*"
+      },
+      {
+        "Sid": "ServiceWildcardString",
+        "Effect": "Allow",
+        "Action": "s3:*",
+        "Resource": "*"
+      }
     ]
   }
   

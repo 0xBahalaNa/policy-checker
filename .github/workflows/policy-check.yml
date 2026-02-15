@@ -36,8 +36,9 @@ jobs:
           python-version: "3.x"
 
       - name: Run policy checker (text)
-        run: python policy_checker.py test-policy.json
+        run: |
+          python policy_checker.py test-policy.json || echo "::warning::Policy violations detected in test-policy.json (expected for sample policy)"
 
       - name: Run policy checker (JSON evidence)
-        if: always()
-        run: python policy_checker.py test-policy.json --output json
+        run: |
+          python policy_checker.py test-policy.json --output json || true

@@ -1,4 +1,4 @@
-from policy_checker import check_policy, enrich_findings
+from policy_checker import check_policy, check_cjis_policy, enrich_findings
 from datetime import datetime
 
 def test_enrich_findings_timestamp_format():
@@ -169,3 +169,93 @@ def test_findings_include_type_key():
     }
     findings = check_policy(policy)
     assert findings[0]["type"] == "action_wildcard"
+
+
+def test_cjis_missing_mfa():
+    """CJI resource access without MFA condition — should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJINoMFA",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "FAIL"
+    assert findings[0]["type"] == "cji_missing_mfa"
+
+
+def test_cjis_with_mfa_clean():
+    """CJI resource access with MFA condition — should pass."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJIWithMFA",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*",
+                "Condition": {
+                    "Bool": {"aws:MultiFactorAuthPresent": "true"}
+                }
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) == 0
+
+
+def test_cjis_cross_account_no_org_restriction():
+    """Cross-account access to CJI resource without org restriction — should be WARN."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJICrossAcct",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-evidence-store/*",
+                "Principal": {
+                    "AWS": "arn:aws:iam::123456789012:root"
+                }
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) >= 1
+    types = [f["type"] for f in findings]
+    assert "cji_cross_account" in types
+
+
+def test_cjis_non_cji_resource_skipped():
+    """Non-CJI resources should not trigger CJIS checks."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "RegularAccess",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::regular-bucket/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) == 0
+
+
+def test_cjis_deny_skipped():
+    """Deny statements should be skipped by CJIS checks."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "DenyCJI",
+                "Effect": "Deny",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) == 0

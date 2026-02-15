@@ -1,8 +1,9 @@
 """
 policy_checker.py
 
-This script loads an AWS IAM policy JSON file and checks for overly permissive statements, 
-such as wildcard ("*") Actions or Resources.
+This script loads an AWS IAM policy JSON file and checks for overly permissive statements,
+such as wildcard ("*") Actions or Resources. It also performs CJIS v6.0 specific checks
+for policies accessing Criminal Justice Information (CJI) resources.
 
 Exit codes:
     0 - Policy is clean, no issues found
@@ -177,7 +178,7 @@ def check_cjis_policy(policy):
                         findings.append({
                             "severity": "WARN",
                             "sid": sid,
-                            "message": f"Cross-account access to CJI resource without org restriction",
+                            "message": "Cross-account access to CJI resource without org restriction",
                             "type": "cji_cross_account"
                         })
                         break

@@ -23,7 +23,10 @@ python policy_checker.py policy.json --output json > results.json
     - `Action` is `*`
     - `Resource` is `*`
     - Service-level wildcards (e.g., `s3:*`, `iam:*`)
-- Maps findings to NIST 800-53 compliance controls.
+- Performs CJIS v6.0 checks on CJI-tagged resources:
+    - Missing MFA condition (`aws:MultiFactorAuthPresent`)
+    - Cross-account access without org restriction
+- Maps findings to NIST 800-53 and CJIS v6.0 compliance controls.
 - Prints a summary of the results.
 
 ## Compliance Mapping
@@ -36,6 +39,8 @@ Each check maps to controls across NIST 800-53 Rev 5, FedRAMP, and CJIS v6.0:
 | Resource is `*` | AC-3 (Access Enforcement) | AC-3 | AC-3 |
 | Service-level wildcard (e.g., `s3:*`) | AC-6 (Least Privilege) | AC-6 | AC-6 |
 | Overly permissive IAM policy | AC-2 (Account Management) | AC-2 | AC-2 |
+| CJI resource access without MFA | IA-2 (Identification and Authentication) | IA-2 | IA-2 |
+| Cross-account access to CJI resource | AC-2 (Account Management) | AC-2 | AC-2 |
 
 ### How This Supports Audits
 
@@ -47,7 +52,7 @@ FedRAMP 20x requires compliance controls to be validated through automated, mach
 
 ### CJIS v6.0 Relevance
 
-CJIS v6.0 (effective April 1, 2026) aligns with NIST 800-53 Rev 5 but adds requirements specific to systems handling Criminal Justice Information (CJI). This tool validates that IAM policies enforce least privilege (CJIS 5.5.2.1) and access control enforcement (CJIS 5.5.2), helping agencies demonstrate that AWS permissions governing CJI data stores are scoped appropriately.
+CJIS v6.0 (effective April 1, 2026) aligns with NIST 800-53 Rev 5 but adds requirements specific to systems handling Criminal Justice Information (CJI). This tool validates that IAM policies enforce least privilege (AC-6), access control enforcement (AC-3), and MFA requirements (IA-2) for CJI resources, helping agencies demonstrate that AWS permissions governing CJI data stores are scoped appropriately.
 
 ## Output Formats
 
@@ -57,8 +62,10 @@ Human-readable output for terminal use.
 Checking: test-policy.json
 [FAIL] Statement "DangerousAdmin01": Action is "*"
 [FAIL] Statement "DangerousAdmin01": Resource is "*"
+[FAIL] Statement "CJIAccessNoMFA": CJI resource access without MFA condition (aws:MultiFactorAuthPresent)
+[WARN] Statement "CJICrossAccount": Cross-account access to CJI resource without org restriction
 
-Results: 2 issues found.
+Results: 4 issues found.
 ```
 
 ### JSON (`--output json`)

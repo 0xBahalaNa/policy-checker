@@ -28,16 +28,24 @@ python policy_checker.py policy.json --output json > results.json
 
 Each check maps to controls across NIST 800-53 Rev 5, FedRAMP, and CJIS v6.0:
 
-| Check | NIST 800-53 | FedRAMP | CJIS Security Policy |
-|-------|-------------|---------|----------------------|
-| Action is `*` | AC-6 (Least Privilege) | AC-6 | 5.5.2.1 (Least Privilege) |
-| Resource is `*` | AC-3 (Access Enforcement) | AC-3 | 5.5.2 (Access Control Enforcement) |
-| Service-level wildcard (e.g., `s3:*`) | AC-6 (Least Privilege) | AC-6 | 5.5.2.1 (Least Privilege) |
-| Overly permissive IAM policy | AC-2 (Account Management) | AC-2 | 5.5.1 (Account Management) |
+| Check | NIST 800-53 | FedRAMP | CJIS v6.0 |
+|-------|-------------|---------|-----------|
+| Action is `*` | AC-6 (Least Privilege) | AC-6 | AC-6 |
+| Resource is `*` | AC-3 (Access Enforcement) | AC-3 | AC-3 |
+| Service-level wildcard (e.g., `s3:*`) | AC-6 (Least Privilege) | AC-6 | AC-6 |
+| Overly permissive IAM policy | AC-2 (Account Management) | AC-2 | AC-2 |
 
 ### How This Supports Audits
 
 The JSON output (`--output json`) provides machine-readable evidence for compliance assessments. Auditors can use this output to verify CM-6 (Configuration Settings), CM-7 (Least Functionality), and SA-11 (Developer Testing) controls. Each finding includes the compliance framework, control ID, severity, and a UTC timestamp for audit trail purposes.
+
+### FedRAMP 20x Alignment
+
+FedRAMP 20x requires compliance controls to be validated through automated, machine-readable evidence rather than manual documentation. The `--output json` format produces structured findings that can feed directly into OSCAL-based evidence pipelines. Each finding includes the framework, control ID, severity, resource, and UTC timestamp required for continuous monitoring and authorization packages.
+
+### CJIS v6.0 Relevance
+
+CJIS v6.0 (effective April 1, 2026) aligns with NIST 800-53 Rev 5 but adds requirements specific to systems handling Criminal Justice Information (CJI). This tool validates that IAM policies enforce least privilege (CJIS 5.5.2.1) and access control enforcement (CJIS 5.5.2), helping agencies demonstrate that AWS permissions governing CJI data stores are scoped appropriately.
 
 ## Output Formats
 

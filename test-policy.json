@@ -39,6 +39,21 @@
         "Effect": "Allow",
         "Action": "s3:*",
         "Resource": "*"
+      },
+      {
+        "Sid": "CJIAccessNoMFA",
+        "Effect": "Allow",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::cji-data-bucket/*"
+      },
+      {
+        "Sid": "CJICrossAccount",
+        "Effect": "Allow",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::cji-evidence-store/*",
+        "Principal": {
+          "AWS": "arn:aws:iam::123456789012:root"
+        }
       }
     ]
   }

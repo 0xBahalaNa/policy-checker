@@ -19,6 +19,8 @@ CONTROL_MAP = {
     "action_wildcard":  {"framework": "NIST 800-53", "control_id": "AC-6"},
     "service_wildcard": {"framework": "NIST 800-53", "control_id": "AC-6"},
     "resource_wildcard": {"framework": "NIST 800-53", "control_id": "AC-3"},
+    "cji_missing_mfa":  {"framework": "CJIS v6.0", "control_id": "IA-2"},
+    "cji_cross_account": {"framework": "CJIS v6.0", "control_id": "AC-2"},
 }
 
 def check_policy(policy):
@@ -106,6 +108,82 @@ def check_policy(policy):
 
     return findings
 
+def check_cjis_policy(policy):
+    """
+    Check a parsed IAM policy for CJIS v6.0 specific requirements.
+
+    Checks for:
+        - Policies accessing CJI resources without MFA conditions (IA-2)
+        - Policies allowing cross-account access to CJI resources (AC-2)
+
+    Args:
+        policy: A dictionary representing a parsed IAM policy JSON.
+
+    Returns:
+        A list of finding dictionaries with the same structure as check_policy().
+    """
+    findings = []
+
+    for statement in policy.get("Statement", []):
+        if statement.get("Effect") == "Deny":
+            continue
+
+        sid = statement.get("Sid")
+        resource = statement.get("Resource")
+        condition = statement.get("Condition", {})
+
+        # Normalize resource to a list for consistent checking.
+        if isinstance(resource, str):
+            resources = [resource]
+        elif isinstance(resource, list):
+            resources = resource
+        else:
+            continue
+
+        # Check if any resource references CJI data (by naming pattern or tag).
+        has_cji_resource = any(
+            "cji" in r.lower() or "criminal-justice" in r.lower()
+            for r in resources
+        )
+        if not has_cji_resource:
+            continue
+
+        # CJIS IA-2: CJI resources should require MFA.
+        mfa_required = (
+            condition.get("Bool", {}).get("aws:MultiFactorAuthPresent") == "true"
+        )
+        if not mfa_required:
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "CJI resource access without MFA condition (aws:MultiFactorAuthPresent)",
+                "type": "cji_missing_mfa"
+            })
+
+        # CJIS AC-2: CJI resources should not allow cross-account access
+        # without explicit principal restrictions.
+        principal = statement.get("Principal")
+        if principal and principal != "*":
+            # Check if principal references external accounts.
+            principals = [principal] if isinstance(principal, str) else []
+            if isinstance(principal, dict):
+                principals = principal.get("AWS", [])
+                if isinstance(principals, str):
+                    principals = [principals]
+            for p in principals:
+                if ":root" in p and "arn:aws:iam::" in p:
+                    account_condition = condition.get("StringEquals", {}).get("aws:PrincipalOrgID")
+                    if not account_condition:
+                        findings.append({
+                            "severity": "WARN",
+                            "sid": sid,
+                            "message": f"Cross-account access to CJI resource without org restriction",
+                            "type": "cji_cross_account"
+                        })
+                        break
+
+    return findings
+
 def enrich_findings(findings, resource):
     """
     Enrich raw findings with compliance framework metadata and timestamps.
@@ -171,6 +249,7 @@ if __name__ == "__main__":
         sys.exit(2)
 
     findings = check_policy(policy)
+    findings.extend(check_cjis_policy(policy))
 
     if args.output == "json":
         enriched = enrich_findings(findings, resource=filename)

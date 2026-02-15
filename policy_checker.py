@@ -10,9 +10,16 @@ Exit codes:
     2 - Input error (file not found, invalid JSON, etc.)
 """
 
+from datetime import datetime, timezone
 import argparse
 import json
 import sys
+
+CONTROL_MAP = {
+    "action_wildcard":  {"framework": "NIST 800-53", "control_id": "AC-6"},
+    "service_wildcard": {"framework": "NIST 800-53", "control_id": "AC-6"},
+    "resource_wildcard": {"framework": "NIST 800-53", "control_id": "AC-3"},
+}
 
 def check_policy(policy):
     """
@@ -26,6 +33,7 @@ def check_policy(policy):
             "severity" - "FAIL" or "WARN"
             "sid"      - The statement's Sid (or None if missing)
             "message"  - A human-readable description of the issue
+            "type"     - Finding type for control mapping (e.g., "action_wildcard")
     """
     findings = []
 
@@ -47,13 +55,15 @@ def check_policy(policy):
             findings.append({
                 "severity": "FAIL",
                 "sid": sid,
-                "message": "Action is \"*\""
+                "message": "Action is \"*\"",
+                "type": "action_wildcard"
             })
         elif isinstance(action, list) and "*" in action:
             findings.append({
                 "severity": "FAIL",
                 "sid": sid,
-                "message": "Action is \"*\""
+                "message": "Action is \"*\"",
+                "type": "action_wildcard"
             })
 
         # Check for service-level wildcards (e.g., "s3:*", "iam:*").
@@ -63,7 +73,8 @@ def check_policy(policy):
             findings.append({
                 "severity": "WARN",
                 "sid": sid,
-                "message": f"Action \"{action}\" grants full access to a service"
+                "message": f"Action \"{action}\" grants full access to a service",
+                "type": "service_wildcard"
             })
         elif isinstance(action, list):
             for item in action:
@@ -71,7 +82,8 @@ def check_policy(policy):
                     findings.append({
                         "severity": "WARN",
                         "sid": sid,
-                        "message": f"Action \"{item}\" grants full access to a service"
+                        "message": f"Action \"{item}\" grants full access to a service",
+                        "type": "service_wildcard"
                     })
 
         # Check if "Resource" is a wildcard ("*"), meaning all resources are affected.
@@ -81,22 +93,67 @@ def check_policy(policy):
             findings.append({
                 "severity": "FAIL",
                 "sid": sid,
-                "message": "Resource is \"*\""
+                "message": "Resource is \"*\"",
+                "type": "resource_wildcard"
             })
         elif isinstance(resource, list) and "*" in resource:
             findings.append({
                 "severity": "FAIL",
                 "sid": sid,
-                "message": "Resource is \"*\""
+                "message": "Resource is \"*\"",
+                "type": "resource_wildcard"
             })
 
     return findings
+
+def enrich_findings(findings, resource):
+    """
+    Enrich raw findings with compliance framework metadata and timestamps.
+
+    Args:
+        findings: A list of finding dictionaries from check_policy(), each
+                  containing a "type" key used to look up control mappings.
+        resource: The filename or path of the policy that was checked.
+
+    Returns:
+        A list of enriched dictionaries, each with keys:
+            "framework"  - Compliance framework name (e.g., "NIST 800-53")
+            "control_id" - The specific control identifier (e.g., "AC-6")
+            "finding"    - A human-readable description of the issue
+            "severity"   - "FAIL" or "WARN"
+            "resource"   - The policy file that was checked
+            "timestamp"  - ISO 8601 UTC timestamp of when the check ran
+
+    Raises:
+        ValueError: If a finding's "type" is not found in CONTROL_MAP.
+    """
+    timestamp = datetime.now(timezone.utc).isoformat()
+    enriched = []
+    for finding in findings:
+        if finding["type"] not in CONTROL_MAP:
+            raise ValueError(f"Unknown finding type: {finding['type']}")
+        control = CONTROL_MAP[finding["type"]]
+        enriched.append({
+            "framework": control["framework"],
+            "control_id": control["control_id"],
+            "finding": finding["message"],
+            "severity": finding["severity"],
+            "resource": resource,
+            "timestamp": timestamp,
+        })
+    return enriched
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Check an AWS IAM policy JSON file for overly permissive statements."
     )
     parser.add_argument("filename", help="Path to the JSON policy file.")
+    parser.add_argument(
+        "--output",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)."
+    )
     args = parser.parse_args()
     filename = args.filename
 
@@ -113,12 +170,16 @@ if __name__ == "__main__":
         print(f"{filename} can't be read.", file=sys.stderr)
         sys.exit(2)
 
-    print(f"Checking: {filename}")
-
     findings = check_policy(policy)
 
-    for finding in findings:
-        print(f"[{finding['severity']}] Statement \"{finding['sid']}\": {finding['message']}")
+    if args.output == "json":
+        enriched = enrich_findings(findings, resource=filename)
+        json.dump(enriched, sys.stdout, indent=2)
+        print()  # trailing newline
+    else:
+        print(f"Checking: {filename}")
+        for finding in findings:
+            print(f"[{finding['severity']}] Statement \"{finding['sid']}\": {finding['message']}")
+        print(f"\nResults: {len(findings)} issues found.")
 
-    print(f"\nResults: {len(findings)} issues found.")
     sys.exit(1 if findings else 0)

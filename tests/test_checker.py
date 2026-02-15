@@ -1,4 +1,25 @@
-from policy_checker import check_policy
+from policy_checker import check_policy, enrich_findings
+from datetime import datetime
+
+def test_enrich_findings_timestamp_format():
+    """Timestamp should be valid ISO 8601."""
+    raw = [{"severity": "FAIL", "sid": "Test", "message": "Test", "type": "action_wildcard"}]
+    enriched = enrich_findings(raw, resource="test.json")
+    timestamp = enriched[0]["timestamp"]
+    parsed = datetime.fromisoformat(timestamp)
+    assert parsed is not None
+
+def test_enrich_findings_structure():
+    """Enriched findings should have framework, control_id, resource, and timestamp."""
+    raw = [{"severity": "FAIL", "sid": "Test", "message": "Action is \"*\"", "type": "action_wildcard"}]
+    enriched = enrich_findings(raw, resource="test-policy.json")
+    assert len(enriched) == 1
+    result = enriched[0]
+    assert result["framework"] == "NIST 800-53"
+    assert result["control_id"] == "AC-6"
+    assert result["severity"] == "FAIL"
+    assert result["resource"] == "test-policy.json"
+    assert "timestamp" in result
 
 def test_clean_policy():
     """No wildcards — findings should be empty."""
@@ -133,3 +154,18 @@ def test_service_wildcard_in_list():
     findings = check_policy(policy)
     assert len(findings) == 1
     assert findings[0]["severity"] == "WARN"
+
+def test_findings_include_type_key():
+    """Findings should include a 'type' key for control mapping."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "WildAction",
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "arn:aws:s3:::my-bucket/*"
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    assert findings[0]["type"] == "action_wildcard"

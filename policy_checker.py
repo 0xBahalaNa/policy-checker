@@ -157,7 +157,8 @@ def check_cjis_policy(policy):
             findings.append({
                 "severity": "FAIL",
                 "sid": sid,
-                "message": "CJI resource access without MFA condition (aws:MultiFactorAuthPresent)",
+                "message": "CJI resource access without MFA condition"
+                          " (aws:MultiFactorAuthPresent)",
                 "type": "cji_missing_mfa"
             })
 
@@ -178,7 +179,8 @@ def check_cjis_policy(policy):
                         findings.append({
                             "severity": "WARN",
                             "sid": sid,
-                            "message": "Cross-account access to CJI resource without org restriction",
+                            "message": "Cross-account access to CJI resource"
+                                      " without org restriction",
                             "type": "cji_cross_account"
                         })
                         break
@@ -237,8 +239,8 @@ if __name__ == "__main__":
     filename = args.filename
 
     try:
-        with open(filename, "r") as file:
-            policy = json.load(file)
+        with open(filename, "r", encoding="utf-8") as file:
+            parsed_policy = json.load(file)
     except FileNotFoundError:
         print(f"{filename} doesn't exist.", file=sys.stderr)
         sys.exit(2)
@@ -249,17 +251,17 @@ if __name__ == "__main__":
         print(f"{filename} can't be read.", file=sys.stderr)
         sys.exit(2)
 
-    findings = check_policy(policy)
-    findings.extend(check_cjis_policy(policy))
+    results = check_policy(parsed_policy)
+    results.extend(check_cjis_policy(parsed_policy))
 
     if args.output == "json":
-        enriched = enrich_findings(findings, resource=filename)
-        json.dump(enriched, sys.stdout, indent=2)
+        enriched_results = enrich_findings(results, resource=filename)
+        json.dump(enriched_results, sys.stdout, indent=2)
         print()  # trailing newline
     else:
         print(f"Checking: {filename}")
-        for finding in findings:
-            print(f"[{finding['severity']}] Statement \"{finding['sid']}\": {finding['message']}")
-        print(f"\nResults: {len(findings)} issues found.")
+        for result in results:
+            print(f"[{result['severity']}] Statement \"{result['sid']}\": {result['message']}")
+        print(f"\nResults: {len(results)} issues found.")
 
-    sys.exit(1 if findings else 0)
+    sys.exit(1 if results else 0)

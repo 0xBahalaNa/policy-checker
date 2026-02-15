@@ -1,0 +1,66 @@
+[
+  {
+    "framework": "NIST 800-53",
+    "control_id": "AC-6",
+    "finding": "Action is \"*\"",
+    "severity": "FAIL",
+    "resource": "test-policy.json",
+    "timestamp": "2026-02-15T00:00:06.793596+00:00"
+  },
+  {
+    "framework": "NIST 800-53",
+    "control_id": "AC-3",
+    "finding": "Resource is \"*\"",
+    "severity": "FAIL",
+    "resource": "test-policy.json",
+    "timestamp": "2026-02-15T00:00:06.793596+00:00"
+  },
+  {
+    "framework": "NIST 800-53",
+    "control_id": "AC-6",
+    "finding": "Action is \"*\"",
+    "severity": "FAIL",
+    "resource": "test-policy.json",
+    "timestamp": "2026-02-15T00:00:06.793596+00:00"
+  },
+  {
+    "framework": "NIST 800-53",
+    "control_id": "AC-3",
+    "finding": "Resource is \"*\"",
+    "severity": "FAIL",
+    "resource": "test-policy.json",
+    "timestamp": "2026-02-15T00:00:06.793596+00:00"
+  },
+  {
+    "framework": "NIST 800-53",
+    "control_id": "AC-6",
+    "finding": "Action \"iam:*\" grants full access to a service",
+    "severity": "WARN",
+    "resource": "test-policy.json",
+    "timestamp": "2026-02-15T00:00:06.793596+00:00"
+  },
+  {
+    "framework": "NIST 800-53",
+    "control_id": "AC-3",
+    "finding": "Resource is \"*\"",
+    "severity": "FAIL",
+    "resource": "test-policy.json",
+    "timestamp": "2026-02-15T00:00:06.793596+00:00"
+  },
+  {
+    "framework": "NIST 800-53",
+    "control_id": "AC-6",
+    "finding": "Action \"s3:*\" grants full access to a service",
+    "severity": "WARN",
+    "resource": "test-policy.json",
+    "timestamp": "2026-02-15T00:00:06.793596+00:00"
+  },
+  {
+    "framework": "NIST 800-53",
+    "control_id": "AC-3",
+    "finding": "Resource is \"*\"",
+    "severity": "FAIL",
+    "resource": "test-policy.json",
+    "timestamp": "2026-02-15T00:00:06.793596+00:00"
+  }
+]

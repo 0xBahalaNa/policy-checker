@@ -16,6 +16,13 @@ import argparse
 import json
 import sys
 
+# Maps each finding type to its compliance framework and control ID.
+# This lets the tool output audit-ready references that GRC teams can trace
+# directly back to the relevant control requirements:
+#   AC-6 (Least Privilege)            — wildcard actions grant more permissions than needed
+#   AC-3 (Access Enforcement)         — wildcard resources bypass resource-level boundaries
+#   IA-2 (Identification & Auth)      — CJI access without MFA violates identity assurance
+#   AC-2 (Account Management)         — cross-account CJI access needs org-level guardrails
 CONTROL_MAP = {
     "action_wildcard":  {"framework": "NIST 800-53", "control_id": "AC-6"},
     "service_wildcard": {"framework": "NIST 800-53", "control_id": "AC-6"},
@@ -164,9 +171,15 @@ def check_cjis_policy(policy):
 
         # CJIS AC-2: CJI resources should not allow cross-account access
         # without explicit principal restrictions.
+        #
+        # IAM policies represent the Principal field in three ways:
+        #   - A string:  "arn:aws:iam::123456789012:root"
+        #   - A dict:    {"AWS": "arn:aws:iam::123456789012:root"}
+        #   - A dict with a list: {"AWS": ["arn:...:root", "arn:...:root"]}
+        # The code below normalizes all three forms into a flat list so we
+        # can check each principal consistently.
         principal = statement.get("Principal")
         if principal and principal != "*":
-            # Check if principal references external accounts.
             principals = [principal] if isinstance(principal, str) else []
             if isinstance(principal, dict):
                 principals = principal.get("AWS", [])
@@ -224,7 +237,12 @@ def enrich_findings(findings, resource):
         })
     return enriched
 
+# This guard ensures the code below only runs when the script is executed
+# directly (e.g., `python policy_checker.py test-policy.json`), not when it
+# is imported as a module by other code or tests.
 if __name__ == "__main__":
+
+    # --- 1. Parse command-line arguments ---
     parser = argparse.ArgumentParser(
         description="Check an AWS IAM policy JSON file for overly permissive statements."
     )
@@ -238,6 +256,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     filename = args.filename
 
+    # --- 2. Load and parse the policy JSON file ---
     try:
         with open(filename, "r", encoding="utf-8") as file:
             parsed_policy = json.load(file)
@@ -251,6 +270,7 @@ if __name__ == "__main__":
         print(f"{filename} can't be read.", file=sys.stderr)
         sys.exit(2)
 
+    # --- 3. Run checks and output results ---
     results = check_policy(parsed_policy)
     results.extend(check_cjis_policy(parsed_policy))
 

@@ -1,4 +1,4 @@
-# policy_checker.py
+# Policy Checker
 
 [![Policy Check](https://github.com/0xBahalaNa/policy_checker/actions/workflows/policy-check.yml/badge.svg)](https://github.com/0xBahalaNa/policy_checker/actions/workflows/policy-check.yml)
 

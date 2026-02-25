@@ -220,6 +220,44 @@ def test_cjis_with_mfa_clean():
     assert len(findings) == 0
 
 
+def test_cjis_with_mfa_bool_if_exists():
+    """CJI resource access with BoolIfExists MFA condition — should pass."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJIWithMFABoolIfExists",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*",
+                "Condition": {
+                    "BoolIfExists": {"aws:MultiFactorAuthPresent": "true"}
+                }
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) == 0
+
+
+def test_cjis_with_mfa_null_condition():
+    """CJI resource access with Null MFA condition — should pass."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJIWithMFANull",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*",
+                "Condition": {
+                    "Null": {"aws:MultiFactorAuthPresent": "false"}
+                }
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) == 0
+
+
 def test_cjis_cross_account_no_org_restriction():
     """Cross-account access to CJI resource without org restriction — should be WARN."""
     policy = {

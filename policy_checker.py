@@ -157,8 +157,16 @@ def check_cjis_policy(policy):
             continue
 
         # CJIS IA-2: CJI resources should require MFA.
+        # AWS IAM supports multiple condition operators for MFA enforcement:
+        #   Bool            — "aws:MultiFactorAuthPresent" == "true"
+        #   BoolIfExists    — Same check, but passes if the key is absent from
+        #                     the request context (common in cross-service calls)
+        #   Null            — "aws:MultiFactorAuthPresent" == "false" means
+        #                     "this key must NOT be null", effectively requiring MFA
         mfa_required = (
             condition.get("Bool", {}).get("aws:MultiFactorAuthPresent") == "true"
+            or condition.get("BoolIfExists", {}).get("aws:MultiFactorAuthPresent") == "true"
+            or condition.get("Null", {}).get("aws:MultiFactorAuthPresent") == "false"
         )
         if not mfa_required:
             findings.append({

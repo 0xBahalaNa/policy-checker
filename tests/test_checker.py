@@ -183,6 +183,58 @@ def test_findings_include_type_key():
     assert findings[0]["type"] == "action_wildcard"
 
 
+def test_not_action_flagged():
+    """NotAction in an Allow statement — should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "DangerousNotAction",
+                "Effect": "Allow",
+                "NotAction": "s3:GetObject",
+                "Resource": "arn:aws:s3:::my-bucket/*"
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    assert any(f["type"] == "not_action" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "not_action")
+
+
+def test_not_resource_flagged():
+    """NotResource in an Allow statement — should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "DangerousNotResource",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": "arn:aws:s3:::public-bucket/*"
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    assert any(f["type"] == "not_resource" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "not_resource")
+
+
+def test_not_principal_flagged():
+    """NotPrincipal in an Allow statement — should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "DangerousNotPrincipal",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::my-bucket/*",
+                "NotPrincipal": {"AWS": "arn:aws:iam::123456789012:root"}
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    assert any(f["type"] == "not_principal" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "not_principal")
+
+
 def test_cjis_missing_mfa():
     """CJI resource access without MFA condition — should be FAIL."""
     policy = {
@@ -309,3 +361,38 @@ def test_cjis_deny_skipped():
     }
     findings = check_cjis_policy(policy)
     assert len(findings) == 0
+
+
+def test_cjis_not_action_flagged():
+    """NotAction on a CJI resource — should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJINotAction",
+                "Effect": "Allow",
+                "NotAction": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "not_action" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "not_action")
+
+
+def test_cjis_not_principal_flagged():
+    """NotPrincipal on a CJI resource — should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJINotPrincipal",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*",
+                "NotPrincipal": {"AWS": "arn:aws:iam::123456789012:root"}
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "not_principal" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "not_principal")

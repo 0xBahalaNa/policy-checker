@@ -27,6 +27,9 @@ CONTROL_MAP = {
     "action_wildcard":  {"framework": "NIST 800-53", "control_id": "AC-6"},
     "service_wildcard": {"framework": "NIST 800-53", "control_id": "AC-6"},
     "resource_wildcard": {"framework": "NIST 800-53", "control_id": "AC-3"},
+    "not_action":       {"framework": "NIST 800-53", "control_id": "AC-6"},
+    "not_resource":     {"framework": "NIST 800-53", "control_id": "AC-3"},
+    "not_principal":    {"framework": "NIST 800-53", "control_id": "AC-6"},
     "cji_missing_mfa":  {"framework": "CJIS v6.0", "control_id": "IA-2"},
     "cji_cross_account": {"framework": "CJIS v6.0", "control_id": "AC-2"},
 }
@@ -114,6 +117,36 @@ def check_policy(policy):
                 "type": "resource_wildcard"
             })
 
+        # Check for inverse IAM fields (NotAction, NotResource, NotPrincipal).
+        # These are privilege escalation vectors: e.g., "NotAction": "s3:GetObject"
+        # allows every action EXCEPT the named one, effectively granting near-admin.
+        if "NotAction" in statement:
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "NotAction grants all actions except those listed"
+                          " (privilege escalation risk)",
+                "type": "not_action"
+            })
+
+        if "NotResource" in statement:
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "NotResource applies to all resources except those"
+                          " listed (privilege escalation risk)",
+                "type": "not_resource"
+            })
+
+        if "NotPrincipal" in statement:
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "NotPrincipal allows all principals except those"
+                          " listed (privilege escalation risk)",
+                "type": "not_principal"
+            })
+
     return findings
 
 def check_cjis_policy(policy):
@@ -175,6 +208,27 @@ def check_cjis_policy(policy):
                 "message": "CJI resource access without MFA condition"
                           " (aws:MultiFactorAuthPresent)",
                 "type": "cji_missing_mfa"
+            })
+
+        # Flag inverse IAM fields on CJI resource statements.
+        # NotAction on a CJI resource allows nearly all actions on CJI data.
+        # NotPrincipal on a CJI resource allows nearly all principals access.
+        if "NotAction" in statement:
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "CJI resource statement uses NotAction"
+                          " (privilege escalation risk)",
+                "type": "not_action"
+            })
+
+        if "NotPrincipal" in statement:
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "CJI resource statement uses NotPrincipal"
+                          " (privilege escalation risk)",
+                "type": "not_principal"
             })
 
         # CJIS AC-2: CJI resources should not allow cross-account access

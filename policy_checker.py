@@ -31,6 +31,7 @@ CONTROL_MAP = {
     "not_resource":     {"framework": "NIST 800-53", "control_id": "AC-3"},
     "not_principal":    {"framework": "NIST 800-53", "control_id": "AC-6"},
     "cji_missing_mfa":  {"framework": "CJIS v6.0", "control_id": "IA-2"},
+    "cji_public_access": {"framework": "CJIS v6.0", "control_id": "AC-3"},
     "cji_cross_account": {"framework": "CJIS v6.0", "control_id": "AC-2"},
 }
 
@@ -241,7 +242,15 @@ def check_cjis_policy(policy):
         # The code below normalizes all three forms into a flat list so we
         # can check each principal consistently.
         principal = statement.get("Principal")
-        if principal and principal != "*":
+        if principal == "*":
+            findings.append({
+                "severity": "FAIL",
+                "sid": sid,
+                "message": "CJI resource allows public (anonymous) access"
+                          " via Principal \"*\"",
+                "type": "cji_public_access"
+            })
+        elif principal:
             principals = [principal] if isinstance(principal, str) else []
             if isinstance(principal, dict):
                 principals = principal.get("AWS", [])

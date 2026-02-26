@@ -310,6 +310,24 @@ def test_cjis_with_mfa_null_condition():
     assert len(findings) == 0
 
 
+def test_cjis_public_access_flagged():
+    """Principal "*" on a CJI resource — should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJIPublicAccess",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*",
+                "Principal": "*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_public_access" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "cji_public_access")
+
+
 def test_cjis_cross_account_no_org_restriction():
     """Cross-account access to CJI resource without org restriction — should be WARN."""
     policy = {

@@ -33,6 +33,7 @@ CONTROL_MAP = {
     "cji_missing_mfa":  {"framework": "CJIS v6.0", "control_id": "IA-2"},
     "cji_public_access": {"framework": "CJIS v6.0", "control_id": "AC-3"},
     "cji_cross_account": {"framework": "CJIS v6.0", "control_id": "AC-2"},
+    "invalid_effect":   {"framework": "NIST 800-53", "control_id": "CM-6"},
 }
 
 def check_policy(policy):
@@ -60,6 +61,17 @@ def check_policy(policy):
             continue
 
         sid = statement.get("Sid")
+
+        # Validate Effect is exactly "Allow". If it's missing, misspelled,
+        # or any other value, the statement is malformed — flag it and skip.
+        if effect != "Allow":
+            findings.append({
+                "severity": "WARN",
+                "sid": sid,
+                "message": f"Effect is \"{effect}\" — expected \"Allow\" or \"Deny\"",
+                "type": "invalid_effect"
+            })
+            continue
 
         # Check if "Action" is a wildcard ("*"), meaning all actions are allowed.
         # The value can be either a single string or a list of strings,
@@ -167,10 +179,22 @@ def check_cjis_policy(policy):
     findings = []
 
     for statement in policy.get("Statement", []):
-        if statement.get("Effect") == "Deny":
+        effect = statement.get("Effect")
+        if effect == "Deny":
             continue
 
         sid = statement.get("Sid")
+
+        # Validate Effect is exactly "Allow" before running CJIS checks.
+        if effect != "Allow":
+            findings.append({
+                "severity": "WARN",
+                "sid": sid,
+                "message": f"Effect is \"{effect}\" — expected \"Allow\" or \"Deny\"",
+                "type": "invalid_effect"
+            })
+            continue
+
         resource = statement.get("Resource")
         condition = statement.get("Condition", {})
 

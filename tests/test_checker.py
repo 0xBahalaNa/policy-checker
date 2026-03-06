@@ -1,10 +1,11 @@
 """
 Unit tests for policy_checker.py.
 
-Covers three areas:
+Covers four areas:
     1. Basic wildcard detection   — Action "*", Resource "*", service-level wildcards (e.g., "s3:*")
-    2. CJIS v6.0 compliance       — MFA requirement (IA-2), cross-account access (AC-2)
-    3. Finding enrichment         — timestamp format, framework/control_id metadata
+    2. Effect field validation    — missing, misspelled, or invalid Effect values (CM-6)
+    3. CJIS v6.0 compliance       — MFA requirement (IA-2), cross-account access (AC-2)
+    4. Finding enrichment         — timestamp format, framework/control_id metadata
 
 Run the full suite with:
     pytest
@@ -414,3 +415,119 @@ def test_cjis_not_principal_flagged():
     findings = check_cjis_policy(policy)
     assert any(f["type"] == "not_principal" for f in findings)
     assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "not_principal")
+
+
+# --- Effect validation tests (check_policy) ---
+
+def test_missing_effect_flagged():
+    """Missing Effect key — should produce WARN with invalid_effect type."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NoEffect",
+                "Action": "*",
+                "Resource": "*"
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "WARN"
+    assert findings[0]["type"] == "invalid_effect"
+    assert "None" in findings[0]["message"]
+
+
+def test_misspelled_effect_flagged():
+    """Misspelled Effect (e.g., "Alow") — should produce WARN."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "Typo",
+                "Effect": "Alow",
+                "Action": "*",
+                "Resource": "*"
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "WARN"
+    assert findings[0]["type"] == "invalid_effect"
+    assert "Alow" in findings[0]["message"]
+
+
+def test_invalid_effect_skips_further_checks():
+    """Invalid Effect should NOT produce action/resource wildcard findings."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "BadEffect",
+                "Effect": "Allow!",
+                "Action": "*",
+                "Resource": "*",
+                "NotAction": "s3:GetObject"
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    # Only the invalid_effect finding — no action_wildcard, resource_wildcard,
+    # or not_action findings because the continue skips further analysis.
+    assert len(findings) == 1
+    assert findings[0]["type"] == "invalid_effect"
+
+
+# --- Effect validation tests (check_cjis_policy) ---
+
+def test_cjis_missing_effect_flagged():
+    """Missing Effect on a CJI resource statement — should produce WARN."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJINoEffect",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "WARN"
+    assert findings[0]["type"] == "invalid_effect"
+
+
+def test_cjis_misspelled_effect_flagged():
+    """Misspelled Effect on a CJI resource — should produce WARN."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJITypo",
+                "Effect": "Alow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "WARN"
+    assert findings[0]["type"] == "invalid_effect"
+    assert "Alow" in findings[0]["message"]
+
+
+def test_cjis_invalid_effect_skips_cjis_checks():
+    """Invalid Effect should NOT produce MFA or cross-account findings."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJIBadEffect",
+                "Effect": "ALLOW",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*",
+                "Principal": "*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    # Only invalid_effect — no cji_missing_mfa or cji_public_access.
+    assert len(findings) == 1
+    assert findings[0]["type"] == "invalid_effect"

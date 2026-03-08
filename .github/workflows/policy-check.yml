@@ -35,10 +35,14 @@ jobs:
         with:
           python-version: "3.x"
 
+      # test-policy.json is an intentionally non-compliant sample policy.
+      # These steps demonstrate the tool's output — violations are expected.
+      # continue-on-error allows CI to proceed while clearly marking the
+      # step as failed, unlike '|| true' which silently suppresses the exit code.
       - name: Run policy checker (text)
-        run: |
-          python policy_checker.py test-policy.json || echo "::warning::Policy violations detected in test-policy.json (expected for sample policy)"
+        continue-on-error: true
+        run: python policy_checker.py test-policy.json
 
       - name: Run policy checker (JSON evidence)
-        run: |
-          python policy_checker.py test-policy.json --output json || true
+        continue-on-error: true
+        run: python policy_checker.py test-policy.json --output json

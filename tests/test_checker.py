@@ -520,7 +520,7 @@ def test_cjis_invalid_effect_skips_cjis_checks():
         "Statement": [
             {
                 "Sid": "CJIBadEffect",
-                "Effect": "ALLOW",
+                "Effect": "Allw",
                 "Action": "s3:GetObject",
                 "Resource": "arn:aws:s3:::cji-data-bucket/*",
                 "Principal": "*"
@@ -531,3 +531,91 @@ def test_cjis_invalid_effect_skips_cjis_checks():
     # Only invalid_effect — no cji_missing_mfa or cji_public_access.
     assert len(findings) == 1
     assert findings[0]["type"] == "invalid_effect"
+
+
+# --- Case-insensitive Effect tests ---
+
+def test_deny_case_insensitive_lowercase():
+    """Lowercase "deny" should be skipped like "Deny"."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "LowerDeny",
+                "Effect": "deny",
+                "Action": "*",
+                "Resource": "*"
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    assert len(findings) == 0
+
+
+def test_deny_case_insensitive_uppercase():
+    """Uppercase "DENY" should be skipped like "Deny"."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "UpperDeny",
+                "Effect": "DENY",
+                "Action": "*",
+                "Resource": "*"
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    assert len(findings) == 0
+
+
+def test_allow_case_insensitive():
+    """Lowercase "allow" should be treated as valid Allow."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "LowerAllow",
+                "Effect": "allow",
+                "Action": "*",
+                "Resource": "*"
+            }
+        ]
+    }
+    findings = check_policy(policy)
+    # Should produce action_wildcard and resource_wildcard, NOT invalid_effect
+    types = [f["type"] for f in findings]
+    assert "invalid_effect" not in types
+    assert "action_wildcard" in types
+
+
+def test_cjis_deny_case_insensitive():
+    """Lowercase "deny" should be skipped by CJIS checks."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJILowerDeny",
+                "Effect": "deny",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert len(findings) == 0
+
+
+def test_cjis_allow_case_insensitive():
+    """Uppercase "ALLOW" on CJI resource should trigger CJIS checks."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJIUpperAllow",
+                "Effect": "ALLOW",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    # Should trigger cji_missing_mfa, NOT invalid_effect
+    types = [f["type"] for f in findings]
+    assert "invalid_effect" not in types
+    assert "cji_missing_mfa" in types

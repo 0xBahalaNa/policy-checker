@@ -56,15 +56,18 @@ def check_policy(policy):
 
         # Skip "Deny" statements - they restrict access rather than grant it,
         # so wildcards in Deny statements are not a security concern.
+        # Case-insensitive comparison handles hand-authored policies with
+        # non-standard casing (e.g., "deny", "DENY").
         effect = statement.get("Effect")
-        if effect == "Deny":
+        if isinstance(effect, str) and effect.lower() == "deny":
             continue
 
         sid = statement.get("Sid")
 
-        # Validate Effect is exactly "Allow". If it's missing, misspelled,
-        # or any other value, the statement is malformed — flag it and skip.
-        if effect != "Allow":
+        # Validate Effect is "Allow" (case-insensitive). If it's missing,
+        # misspelled, or any other value, the statement is malformed — flag
+        # it and skip.
+        if not isinstance(effect, str) or effect.lower() != "allow":
             findings.append({
                 "severity": "WARN",
                 "sid": sid,
@@ -180,13 +183,14 @@ def check_cjis_policy(policy):
 
     for statement in policy.get("Statement", []):
         effect = statement.get("Effect")
-        if effect == "Deny":
+        if isinstance(effect, str) and effect.lower() == "deny":
             continue
 
         sid = statement.get("Sid")
 
-        # Validate Effect is exactly "Allow" before running CJIS checks.
-        if effect != "Allow":
+        # Validate Effect is "Allow" (case-insensitive) before running
+        # CJIS checks.
+        if not isinstance(effect, str) or effect.lower() != "allow":
             findings.append({
                 "severity": "WARN",
                 "sid": sid,

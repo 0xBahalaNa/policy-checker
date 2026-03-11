@@ -619,3 +619,103 @@ def test_cjis_allow_case_insensitive():
     types = [f["type"] for f in findings]
     assert "invalid_effect" not in types
     assert "cji_missing_mfa" in types
+
+
+# --- CJI pattern matching tests ---
+
+def test_cjis_criminal_underscore_matched():
+    """criminal_justice naming convention should trigger CJIS checks."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "Underscore",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::criminal_justice_records/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_missing_mfa" for f in findings)
+
+
+def test_cjis_cj_data_matched():
+    """cj-data naming convention should trigger CJIS checks."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJData",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cj-data-bucket/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_missing_mfa" for f in findings)
+
+
+def test_cjis_cj_info_matched():
+    """cj-info naming convention should trigger CJIS checks."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJInfo",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cj-info-store/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_missing_mfa" for f in findings)
+
+
+def test_cjis_custom_patterns_override_defaults():
+    """Custom patterns should replace defaults, not extend them."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CustomMatch",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::secret-records/*"
+            }
+        ]
+    }
+    # "cji" default would NOT match "secret-records", but custom pattern does
+    findings = check_cjis_policy(policy, cji_patterns=["secret-records"])
+    assert any(f["type"] == "cji_missing_mfa" for f in findings)
+
+
+def test_cjis_custom_patterns_skip_default_match():
+    """When custom patterns are set, default patterns should not match."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "DefaultNoMatch",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*"
+            }
+        ]
+    }
+    # Custom pattern does not include "cji", so this should NOT trigger
+    findings = check_cjis_policy(policy, cji_patterns=["secret-records"])
+    assert len(findings) == 0
+
+
+def test_cjis_regex_pattern_supported():
+    """Regex patterns should work for flexible matching."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "RegexMatch",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::law-enforcement-2024/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy, cji_patterns=["law-enforcement-\\d+"])
+    assert any(f["type"] == "cji_missing_mfa" for f in findings)

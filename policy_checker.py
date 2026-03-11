@@ -14,6 +14,7 @@ Exit codes:
 from datetime import datetime, timezone
 import argparse
 import json
+import re
 import sys
 
 # Maps each finding type to its compliance framework and control ID.
@@ -35,6 +36,18 @@ CONTROL_MAP = {
     "cji_cross_account": {"framework": "CJIS v6.0", "control_id": "AC-2"},
     "invalid_effect":   {"framework": "NIST 800-53", "control_id": "CM-6"},
 }
+
+# Default regex patterns for identifying CJI (Criminal Justice Information)
+# resources by ARN. Each pattern is matched case-insensitively against resource
+# ARNs. Users can override these via --cji-patterns with a JSON file containing
+# a list of custom pattern strings.
+DEFAULT_CJI_PATTERNS = (
+    "cji",
+    "criminal-justice",
+    "criminal_justice",
+    "cj-data",
+    "cj-info",
+)
 
 def check_policy(policy):
     """
@@ -165,7 +178,7 @@ def check_policy(policy):
 
     return findings
 
-def check_cjis_policy(policy):
+def check_cjis_policy(policy, cji_patterns=None):
     """
     Check a parsed IAM policy for CJIS v6.0 specific requirements.
 
@@ -175,10 +188,18 @@ def check_cjis_policy(policy):
 
     Args:
         policy: A dictionary representing a parsed IAM policy JSON.
+        cji_patterns: Optional list of regex pattern strings for identifying
+                      CJI resources. Defaults to DEFAULT_CJI_PATTERNS.
 
     Returns:
         A list of finding dictionaries with the same structure as check_policy().
     """
+    if cji_patterns is None:
+        cji_patterns = DEFAULT_CJI_PATTERNS
+
+    # Compile patterns once for reuse across all statements. re.IGNORECASE
+    # handles casing so we don't need to .lower() each ARN manually.
+    compiled_patterns = [re.compile(p, re.IGNORECASE) for p in cji_patterns]
     findings = []
 
     for statement in policy.get("Statement", []):
@@ -210,10 +231,12 @@ def check_cjis_policy(policy):
         else:
             continue
 
-        # Check if any resource references CJI data (by naming pattern or tag).
+        # Check if any resource references CJI data by matching against the
+        # configured regex patterns. Uses compiled patterns for efficiency.
         has_cji_resource = any(
-            "cji" in r.lower() or "criminal-justice" in r.lower()
+            pattern.search(r)
             for r in resources
+            for pattern in compiled_patterns
         )
         if not has_cji_resource:
             continue
@@ -352,8 +375,31 @@ if __name__ == "__main__":
         default="text",
         help="Output format (default: text)."
     )
+    parser.add_argument(
+        "--cji-patterns",
+        help="Path to a JSON file containing a list of regex patterns for"
+             " identifying CJI resources. Overrides the built-in defaults."
+    )
     args = parser.parse_args()
     filename = args.filename
+
+    # Load custom CJI patterns from file if provided.
+    cji_patterns = None
+    if args.cji_patterns:
+        try:
+            with open(args.cji_patterns, "r", encoding="utf-8") as f:
+                cji_patterns = json.load(f)
+            if not isinstance(cji_patterns, list):
+                print("CJI patterns file must contain a JSON array.",
+                      file=sys.stderr)
+                sys.exit(2)
+        except FileNotFoundError:
+            print(f"{args.cji_patterns} doesn't exist.", file=sys.stderr)
+            sys.exit(2)
+        except json.JSONDecodeError:
+            print(f"{args.cji_patterns} contains invalid JSON.",
+                  file=sys.stderr)
+            sys.exit(2)
 
     # --- 2. Load and parse the policy JSON file ---
     try:
@@ -371,7 +417,7 @@ if __name__ == "__main__":
 
     # --- 3. Run checks and output results ---
     results = check_policy(parsed_policy)
-    results.extend(check_cjis_policy(parsed_policy))
+    results.extend(check_cjis_policy(parsed_policy, cji_patterns=cji_patterns))
 
     if args.output == "json":
         enriched_results = enrich_findings(results, resource=filename)

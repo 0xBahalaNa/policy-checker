@@ -308,6 +308,8 @@ def check_cjis_policy(policy, cji_patterns=None):
                 if isinstance(principals, str):
                     principals = [principals]
             for p in principals:
+                if not isinstance(p, str):
+                    continue
                 if ":root" in p and "arn:aws:iam::" in p:
                     account_condition = condition.get("StringEquals", {}).get("aws:PrincipalOrgID")
                     if not account_condition:
@@ -393,6 +395,11 @@ if __name__ == "__main__":
                 print("CJI patterns file must contain a JSON array.",
                       file=sys.stderr)
                 sys.exit(2)
+            for i, p in enumerate(cji_patterns):
+                if not isinstance(p, str):
+                    print(f"CJI pattern at index {i} must be a string (got {type(p).__name__}).",
+                          file=sys.stderr)
+                    sys.exit(2)
         except FileNotFoundError:
             print(f"{args.cji_patterns} doesn't exist.", file=sys.stderr)
             sys.exit(2)

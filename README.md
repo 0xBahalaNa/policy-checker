@@ -42,15 +42,15 @@ Each check maps to controls across NIST 800-53 Rev 5, FedRAMP, and CJIS v6.0:
 | CJI resource access without MFA | IA-2 (Identification and Authentication) | IA-2 | IA-2 |
 | Cross-account access to CJI resource | AC-2 (Account Management) | AC-2 | AC-2 |
 
-### How This Supports Audits
+## Audit Relevance
 
 The JSON output (`--output json`) provides machine-readable evidence for compliance assessments. Auditors can use this output to verify CM-6 (Configuration Settings), CM-7 (Least Functionality), and SA-11 (Developer Testing) controls. Each finding includes the compliance framework, control ID, severity, and a UTC timestamp for audit trail purposes.
 
-### FedRAMP 20x Alignment
+## FedRAMP 20x Alignment
 
 FedRAMP 20x requires compliance controls to be validated through automated, machine-readable evidence rather than manual documentation. The `--output json` format produces structured findings that can feed directly into OSCAL-based evidence pipelines. Each finding includes the framework, control ID, severity, resource, and UTC timestamp required for continuous monitoring and authorization packages.
 
-### CJIS v6.0 Relevance
+## CJIS v6.0 Relevance
 
 CJIS v6.0 (effective April 1, 2026) aligns with NIST 800-53 Rev 5 but adds requirements specific to systems handling Criminal Justice Information (CJI). This tool validates that IAM policies enforce least privilege (AC-6), access control enforcement (AC-3), and MFA requirements (IA-2) for CJI resources, helping agencies demonstrate that AWS permissions governing CJI data stores are scoped appropriately.
 

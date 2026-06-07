@@ -1,6 +1,12 @@
-# Policy Checker
-
+![License](https://img.shields.io/badge/License-MIT-green?style=flat)
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776ab?style=flat)
+![AWS](https://img.shields.io/badge/AWS-IAM%20Policy-FF9900?style=flat&logo=amazonwebservices)
+![NIST 800-53](https://img.shields.io/badge/NIST-800--53%20Rev%205-004990?style=flat)
+![FedRAMP](https://img.shields.io/badge/FedRAMP-High%20Baseline-0071bc?style=flat)
+![CJIS](https://img.shields.io/badge/CJIS-Security%20Policy%20v6.0-cc0000?style=flat)
 [![Policy Check](https://github.com/0xBahalaNa/policy_checker/actions/workflows/policy-check.yml/badge.svg)](https://github.com/0xBahalaNa/policy_checker/actions/workflows/policy-check.yml)
+
+# Policy Checker
 
 This script loads an AWS IAM policy file and checks if it is overly permissive.
 

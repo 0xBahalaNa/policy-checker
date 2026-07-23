@@ -10,6 +10,26 @@
 
 This script loads an AWS IAM policy file and checks if it is overly permissive.
 
+## Architecture Overview
+
+```mermaid
+flowchart TD
+    CLI["policy_checker.py<br/>policy.json CLI"] --> PARSE["Parse Statement entries"]
+    PARSE --> WILD["Permissive checks<br/>Action/Resource * · service:*"]
+    PARSE --> CJI["CJI-tagged checks<br/>MFA · cross-account"]
+    WILD --> FIND["Findings"]
+    CJI --> FIND
+    FIND --> TXT["Text summary<br/>default output"]
+    FIND --> MAP["Map to NIST 800-53 / CJIS IDs"]
+    MAP --> JSON["JSON evidence<br/>--output json"]
+    TXT --> HUM["Auditors / CLI review"]
+    JSON --> PIPE["OSCAL · CI workflow<br/>control ID + UTC timestamp"]
+```
+
+Editable Mermaid source (kept in sync with the fence above): [`docs/architecture.mmd`](docs/architecture.mmd).
+
+`policy_checker.py` parses each IAM `Statement` and flags overly permissive wildcards and CJI-tagged MFA / cross-account gaps. Default output is a text summary (severity, statement ID, message — no control IDs). With `--output json`, findings are enriched with NIST 800-53 / CJIS control IDs and UTC timestamps for CI and OSCAL consumers.
+
 ## Usage
 ```
 python policy_checker.py <filename> [--output text|json]

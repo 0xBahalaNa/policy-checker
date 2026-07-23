@@ -1,0 +1,14 @@
+%% Editable Mermaid source for the README "Architecture Overview" section.
+%% Keep this file in sync with the inline ```mermaid fence in README.md.
+%% Diff-able source of truth for the architecture graph (no separate PNG export).
+flowchart TD
+    CLI["policy_checker.py<br/>policy.json CLI"] --> PARSE["Parse Statement entries"]
+    PARSE --> WILD["Permissive checks<br/>Action/Resource * · service:*"]
+    PARSE --> CJI["CJI-tagged checks<br/>MFA · cross-account"]
+    WILD --> FIND["Findings"]
+    CJI --> FIND
+    FIND --> TXT["Text summary<br/>default output"]
+    FIND --> MAP["Map to NIST 800-53 / CJIS IDs"]
+    MAP --> JSON["JSON evidence<br/>--output json"]
+    TXT --> HUM["Auditors / CLI review"]
+    JSON --> PIPE["OSCAL · CI workflow<br/>control ID + UTC timestamp"]

@@ -28,7 +28,7 @@ flowchart TD
 
 Editable Mermaid source (kept in sync with the fence above): [`docs/architecture.mmd`](docs/architecture.mmd).
 
-`policy_checker.py` parses each IAM `Statement` and flags overly permissive wildcards and CJI-tagged MFA / cross-account gaps. Default output is a text summary (severity, statement ID, message — no control IDs). With `--output json`, findings are enriched with NIST 800-53 / CJIS control IDs and UTC timestamps for CI and OSCAL consumers.
+`policy_checker.py` parses each IAM `Statement` and flags overly permissive wildcards and CJI-tagged MFA / cross-account gaps. Default output is a text summary with severity, statement ID, and message (control IDs are omitted). With `--output json`, findings are enriched with NIST 800-53 / CJIS control IDs and UTC timestamps for CI and OSCAL consumers.
 
 ## Usage
 ```

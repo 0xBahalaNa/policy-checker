@@ -4,7 +4,7 @@ Unit tests for policy_checker.py.
 Covers four areas:
     1. Basic wildcard detection   — Action "*", Resource "*", service-level wildcards (e.g., "s3:*")
     2. Effect field validation    — missing, misspelled, or invalid Effect values (CM-6)
-    3. CJIS v6.0 compliance       — MFA requirement (IA-2), cross-account access (AC-2)
+    3. CJIS v6.1 compliance       — MFA requirement (IA-2), cross-account access (AC-2)
     4. Finding enrichment         — timestamp format, framework/control_id metadata
 
 Run the full suite with:

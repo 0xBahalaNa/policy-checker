@@ -3,7 +3,7 @@
 ![AWS](https://img.shields.io/badge/AWS-IAM%20Policy-FF9900?style=flat&logo=amazonwebservices)
 ![NIST 800-53](https://img.shields.io/badge/NIST-800--53%20Rev%205-004990?style=flat)
 ![FedRAMP](https://img.shields.io/badge/FedRAMP-High%20Baseline-0071bc?style=flat)
-![CJIS](https://img.shields.io/badge/CJIS-Security%20Policy%20v6.0-cc0000?style=flat)
+![CJIS](https://img.shields.io/badge/CJIS-Security%20Policy%20v6.1-cc0000?style=flat)
 [![Policy Check](https://github.com/0xBahalaNa/policy_checker/actions/workflows/policy-check.yml/badge.svg)](https://github.com/0xBahalaNa/policy_checker/actions/workflows/policy-check.yml)
 
 # Policy Checker
@@ -49,17 +49,17 @@ python policy_checker.py policy.json --output json > results.json
     - `Action` is `*`
     - `Resource` is `*`
     - Service-level wildcards (e.g., `s3:*`, `iam:*`)
-- Performs CJIS v6.0 checks on CJI-tagged resources:
+- Performs CJIS v6.1 checks on CJI-tagged resources:
     - Missing MFA condition (`aws:MultiFactorAuthPresent`)
     - Cross-account access without org restriction
-- Maps findings to NIST 800-53 and CJIS v6.0 compliance controls.
+- Maps findings to NIST 800-53 and CJIS v6.1 compliance controls.
 - Prints a summary of the results.
 
 ## Compliance Mapping
 
-Each check maps to controls across NIST 800-53 Rev 5, FedRAMP, and CJIS v6.0:
+Each check maps to controls across NIST 800-53 Rev 5, FedRAMP, and CJIS v6.1:
 
-| Check | NIST 800-53 | FedRAMP | CJIS v6.0 |
+| Check | NIST 800-53 | FedRAMP | CJIS v6.1 |
 |-------|-------------|---------|-----------|
 | Action is `*` | AC-6 (Least Privilege) | AC-6 | AC-6 |
 | Resource is `*` | AC-3 (Access Enforcement) | AC-3 | AC-3 |
@@ -76,9 +76,9 @@ The JSON output (`--output json`) provides machine-readable evidence for complia
 
 FedRAMP 20x requires compliance controls to be validated through automated, machine-readable evidence rather than manual documentation. The `--output json` format produces structured findings that can feed directly into OSCAL-based evidence pipelines. Each finding includes the framework, control ID, severity, resource, and UTC timestamp required for continuous monitoring and authorization packages.
 
-## CJIS v6.0 Relevance
+## CJIS v6.1 Relevance
 
-CJIS v6.0 (published Dec 27, 2024; default audit baseline from April 1, 2026; Priority 2-4 fully enforceable Oct 1, 2027) aligns with NIST 800-53 Rev 5 but adds requirements specific to systems handling Criminal Justice Information (CJI). This tool validates that IAM policies enforce least privilege (AC-6), access control enforcement (AC-3), and MFA requirements (IA-2) for CJI resources, helping agencies demonstrate that AWS permissions governing CJI data stores are scoped appropriately.
+CJIS Security Policy v6.1 (released June 25, 2026) is the current policy, aligned with NIST 800-53 Rev 5. v6.x has been the default audit baseline since April 1, 2026 (v5.9.5 sunset March 31, 2026); modernized Priority 2-4 controls are fully enforceable Oct 1, 2027 (timing varies by state CSA). It adds requirements specific to systems handling Criminal Justice Information (CJI). This tool validates that IAM policies enforce least privilege (AC-6), access control enforcement (AC-3), and MFA requirements (IA-2) for CJI resources, helping agencies demonstrate that AWS permissions governing CJI data stores are scoped appropriately.
 
 ## Output Formats
 

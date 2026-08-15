@@ -2,7 +2,7 @@
 policy_checker.py
 
 This script loads an AWS IAM policy JSON file and checks for overly permissive statements,
-such as wildcard ("*") Actions or Resources. It also performs CJIS v6.0 specific checks
+such as wildcard ("*") Actions or Resources. It also performs CJIS v6.1 specific checks
 for policies accessing Criminal Justice Information (CJI) resources.
 
 Exit codes:
@@ -31,9 +31,9 @@ CONTROL_MAP = {
     "not_action":       {"framework": "NIST 800-53", "control_id": "AC-6"},
     "not_resource":     {"framework": "NIST 800-53", "control_id": "AC-3"},
     "not_principal":    {"framework": "NIST 800-53", "control_id": "AC-6"},
-    "cji_missing_mfa":  {"framework": "CJIS v6.0", "control_id": "IA-2"},
-    "cji_public_access": {"framework": "CJIS v6.0", "control_id": "AC-3"},
-    "cji_cross_account": {"framework": "CJIS v6.0", "control_id": "AC-2"},
+    "cji_missing_mfa":  {"framework": "CJIS v6.1", "control_id": "IA-2"},
+    "cji_public_access": {"framework": "CJIS v6.1", "control_id": "AC-3"},
+    "cji_cross_account": {"framework": "CJIS v6.1", "control_id": "AC-2"},
     "invalid_effect":   {"framework": "NIST 800-53", "control_id": "CM-6"},
 }
 
@@ -180,7 +180,7 @@ def check_policy(policy):
 
 def check_cjis_policy(policy, cji_patterns=None):
     """
-    Check a parsed IAM policy for CJIS v6.0 specific requirements.
+    Check a parsed IAM policy for CJIS v6.1 specific requirements.
 
     Checks for:
         - Policies accessing CJI resources without MFA conditions (IA-2)

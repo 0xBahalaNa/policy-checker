@@ -5,7 +5,7 @@
     "finding": "Action is \"*\"",
     "severity": "FAIL",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
     "framework": "NIST 800-53",
@@ -13,7 +13,7 @@
     "finding": "Resource is \"*\"",
     "severity": "FAIL",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
     "framework": "NIST 800-53",
@@ -21,7 +21,7 @@
     "finding": "Action is \"*\"",
     "severity": "FAIL",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
     "framework": "NIST 800-53",
@@ -29,7 +29,7 @@
     "finding": "Resource is \"*\"",
     "severity": "FAIL",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
     "framework": "NIST 800-53",
@@ -37,7 +37,7 @@
     "finding": "Action \"iam:*\" grants full access to a service",
     "severity": "WARN",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
     "framework": "NIST 800-53",
@@ -45,7 +45,7 @@
     "finding": "Resource is \"*\"",
     "severity": "FAIL",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
     "framework": "NIST 800-53",
@@ -53,7 +53,7 @@
     "finding": "Action \"s3:*\" grants full access to a service",
     "severity": "WARN",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
     "framework": "NIST 800-53",
@@ -61,30 +61,30 @@
     "finding": "Resource is \"*\"",
     "severity": "FAIL",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
-    "framework": "CJIS v6.0",
+    "framework": "CJIS v6.1",
     "control_id": "IA-2",
     "finding": "CJI resource access without MFA condition (aws:MultiFactorAuthPresent)",
     "severity": "FAIL",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
-    "framework": "CJIS v6.0",
+    "framework": "CJIS v6.1",
     "control_id": "IA-2",
     "finding": "CJI resource access without MFA condition (aws:MultiFactorAuthPresent)",
     "severity": "FAIL",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   },
   {
-    "framework": "CJIS v6.0",
+    "framework": "CJIS v6.1",
     "control_id": "AC-2",
     "finding": "Cross-account access to CJI resource without org restriction",
     "severity": "WARN",
     "resource": "test-policy.json",
-    "timestamp": "2026-02-15T23:06:25.217302+00:00"
+    "timestamp": "2026-08-14T22:31:58.146293+00:00"
   }
 ]

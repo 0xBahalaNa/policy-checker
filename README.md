@@ -8,7 +8,7 @@
 
 # Policy Checker
 
-This script loads an AWS IAM policy file and checks if it is overly permissive.
+I built this to load an AWS IAM policy file and check whether it's overly permissive.
 
 ## Architecture Overview
 

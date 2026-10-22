@@ -88,10 +88,17 @@ Human-readable output for terminal use.
 Checking: test-policy.json
 [FAIL] Statement "DangerousAdmin01": Action is "*"
 [FAIL] Statement "DangerousAdmin01": Resource is "*"
+[FAIL] Statement "DangerousAdmin02": Action is "*"
+[FAIL] Statement "DangerousAdmin02": Resource is "*"
+[WARN] Statement "ServiceWildcardList": Action "iam:*" grants full access to a service
+[FAIL] Statement "ServiceWildcardList": Resource is "*"
+[WARN] Statement "ServiceWildcardString": Action "s3:*" grants full access to a service
+[FAIL] Statement "ServiceWildcardString": Resource is "*"
 [FAIL] Statement "CJIAccessNoMFA": CJI resource access without MFA condition (aws:MultiFactorAuthPresent)
+[FAIL] Statement "CJICrossAccount": CJI resource access without MFA condition (aws:MultiFactorAuthPresent)
 [WARN] Statement "CJICrossAccount": Cross-account access to CJI resource without org restriction
 
-Results: 4 issues found.
+Results: 11 issues found.
 ```
 
 ### JSON (`--output json`)

@@ -119,6 +119,28 @@ def test_resource_wildcard_in_list():
     assert findings[0]["severity"] == "FAIL"
 
 
+def test_single_object_statement():
+    """A single-object Statement still reports the wildcard findings."""
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "*",
+            "Resource": "*"
+        }
+    }
+    findings = check_policy(policy)
+    types = [f["type"] for f in findings]
+    assert "action_wildcard" in types
+    assert "resource_wildcard" in types
+    assert all(
+        f["severity"] == "FAIL"
+        for f in findings
+        if f["type"] in ("action_wildcard", "resource_wildcard")
+    )
+    assert check_cjis_policy(policy) == []
+
+
 def test_deny_statement_skipped():
     """Deny statements with wildcards should be skipped entirely."""
     policy = {

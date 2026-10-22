@@ -65,7 +65,11 @@ def check_policy(policy):
     """
     findings = []
 
-    for statement in policy.get("Statement", []):
+    statements = policy.get("Statement", [])
+    if isinstance(statements, dict):
+        statements = [statements]
+
+    for statement in statements:
 
         # Skip "Deny" statements - they restrict access rather than grant it,
         # so wildcards in Deny statements are not a security concern.
@@ -202,7 +206,11 @@ def check_cjis_policy(policy, cji_patterns=None):
     compiled_patterns = [re.compile(p, re.IGNORECASE) for p in cji_patterns]
     findings = []
 
-    for statement in policy.get("Statement", []):
+    statements = policy.get("Statement", [])
+    if isinstance(statements, dict):
+        statements = [statements]
+
+    for statement in statements:
         effect = statement.get("Effect")
         if isinstance(effect, str) and effect.lower() == "deny":
             continue

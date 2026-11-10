@@ -20,7 +20,12 @@ from pathlib import Path
 
 import pytest
 
-from policy_checker import check_policy, check_cjis_policy, enrich_findings
+from policy_checker import (
+    DEFAULT_CJI_PATTERNS,
+    check_policy,
+    check_cjis_policy,
+    enrich_findings,
+)
 
 def test_enrich_findings_timestamp_format():
     """Timestamp should be valid ISO 8601."""
@@ -628,6 +633,54 @@ def test_cjis_not_resource_star_grants_nothing():
         ]
     }
     findings = check_cjis_policy(policy)
+    assert findings == []
+
+
+def test_cjis_not_resource_covering_every_pattern_is_clean():
+    """Excluding every configured CJI name does not grant CJI access."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "ExcludeAllCjiNames",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": [f"*{pattern}*" for pattern in DEFAULT_CJI_PATTERNS]
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert findings == []
+
+
+def test_cjis_not_resource_partial_name_exclusion_still_grants_cji():
+    """Excluding only the cji token still grants the other CJI names."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "ExcludeOnlyCjiToken",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": "*cji*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_missing_mfa" for f in findings)
+
+
+def test_cjis_not_resource_custom_pattern_exclusion_is_case_insensitive():
+    """A full name exclusion matches the configured pattern regardless of case."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "ExcludeSecret",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": "*SECRET-RECORDS*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy, cji_patterns=["secret-records"])
     assert findings == []
 
 

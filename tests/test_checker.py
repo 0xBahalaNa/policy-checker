@@ -831,7 +831,6 @@ def test_cli_cji_patterns_list_still_runs_checks(tmp_path):
 
 
 def _run_cji_patterns(tmp_path, patterns_json):
-    """Run the CLI against an empty policy and a patterns file."""
     patterns = tmp_path / "patterns.json"
     patterns.write_text(patterns_json, encoding="utf-8")
     policy = tmp_path / "policy.json"
@@ -855,7 +854,6 @@ def _run_cji_patterns(tmp_path, patterns_json):
 
 
 def test_cji_patterns_rejects_non_string_element(tmp_path):
-    """A non-string --cji-patterns element exits 2 and names its index."""
     result = _run_cji_patterns(tmp_path, "[123]")
     assert result.returncode == 2
     assert result.stderr.strip() == (
@@ -866,7 +864,6 @@ def test_cji_patterns_rejects_non_string_element(tmp_path):
 
 
 def test_cji_patterns_rejects_non_string_at_later_index(tmp_path):
-    """The error names the first bad index when it is not zero."""
     result = _run_cji_patterns(tmp_path, '["cji", null]')
     assert result.returncode == 2
     assert result.stderr.strip() == (

@@ -436,6 +436,12 @@ if __name__ == "__main__":
             print(f"{args.cji_patterns} contains invalid JSON.",
                   file=sys.stderr)
             sys.exit(2)
+        except IsADirectoryError:
+            print(f"{args.cji_patterns} is a directory.", file=sys.stderr)
+            sys.exit(2)
+        except (OSError, UnicodeDecodeError):
+            print(f"{args.cji_patterns} can't be read.", file=sys.stderr)
+            sys.exit(2)
 
     # --- 2. Load and parse the policy JSON file ---
     try:

@@ -828,3 +828,57 @@ def test_cli_cji_patterns_list_still_runs_checks(tmp_path):
     assert result.returncode == 1
     assert "CJI resource access without MFA" in result.stdout
     assert result.stderr == ""
+
+
+def _run_cji_patterns(tmp_path, patterns_json):
+    """Run the CLI against an empty policy and a patterns file."""
+    patterns = tmp_path / "patterns.json"
+    patterns.write_text(patterns_json, encoding="utf-8")
+    policy = tmp_path / "policy.json"
+    policy.write_text(
+        '{"Version":"2012-10-17","Statement":[]}',
+        encoding="utf-8",
+    )
+    checker = Path(__file__).resolve().parents[1] / "policy_checker.py"
+    return subprocess.run(
+        [
+            sys.executable,
+            str(checker),
+            str(policy),
+            "--cji-patterns",
+            str(patterns),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_cji_patterns_rejects_non_string_element(tmp_path):
+    """A non-string --cji-patterns element exits 2 and names its index."""
+    result = _run_cji_patterns(tmp_path, "[123]")
+    assert result.returncode == 2
+    assert result.stderr.strip() == (
+        "CJI pattern at index 0 must be a string (got int)."
+    )
+    assert "Traceback" not in result.stdout
+    assert "Traceback" not in result.stderr
+
+
+def test_cji_patterns_rejects_non_string_at_later_index(tmp_path):
+    """The error names the first bad index when it is not zero."""
+    result = _run_cji_patterns(tmp_path, '["cji", null]')
+    assert result.returncode == 2
+    assert result.stderr.strip() == (
+        "CJI pattern at index 1 must be a string (got NoneType)."
+    )
+
+
+def test_cji_patterns_rejects_empty_string(tmp_path):
+    """An empty pattern string exits 2 instead of matching every ARN."""
+    result = _run_cji_patterns(tmp_path, '[""]')
+    assert result.returncode == 2
+    assert result.stderr.strip() == (
+        "CJI pattern at index 0 must be a non-empty string."
+    )
+    assert "Traceback" not in result.stderr

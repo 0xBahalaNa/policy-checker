@@ -11,6 +11,10 @@ Run the full suite with:
     pytest
 """
 
+import subprocess
+import sys
+from pathlib import Path
+
 from policy_checker import check_policy, check_cjis_policy, enrich_findings
 from datetime import datetime
 
@@ -741,3 +745,33 @@ def test_cjis_regex_pattern_supported():
     }
     findings = check_cjis_policy(policy, cji_patterns=["law-enforcement-\\d+"])
     assert any(f["type"] == "cji_missing_mfa" for f in findings)
+
+
+def test_empty_cji_pattern_rejected_at_load(tmp_path):
+    """An empty --cji-patterns entry is an input error, not a match-all."""
+    policy = tmp_path / "policy.json"
+    policy.write_text(
+        '{"Statement":[{"Sid":"ReadLogs","Effect":"Allow",'
+        '"Action":"s3:GetObject",'
+        '"Resource":"arn:aws:s3:::application-logs/*"}]}',
+        encoding="utf-8",
+    )
+    patterns = tmp_path / "patterns.json"
+    patterns.write_text('[""]', encoding="utf-8")
+    checker = Path(__file__).resolve().parents[1] / "policy_checker.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(checker),
+            str(policy),
+            "--cji-patterns",
+            str(patterns),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert result.stderr.strip() == (
+        "CJI pattern at index 0 must be a non-empty string."
+    )
+    assert "CJI resource access without MFA" not in result.stdout

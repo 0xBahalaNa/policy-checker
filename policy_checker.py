@@ -401,6 +401,11 @@ if __name__ == "__main__":
                 print("CJI patterns file must contain a JSON array.",
                       file=sys.stderr)
                 sys.exit(2)
+            for i, p in enumerate(cji_patterns):
+                if not isinstance(p, str) or not p:
+                    print(f"CJI pattern at index {i} must be a non-empty string.",
+                          file=sys.stderr)
+                    sys.exit(2)
         except FileNotFoundError:
             print(f"{args.cji_patterns} doesn't exist.", file=sys.stderr)
             sys.exit(2)

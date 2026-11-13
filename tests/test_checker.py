@@ -879,3 +879,12 @@ def test_cji_patterns_rejects_empty_string(tmp_path):
         "CJI pattern at index 0 must be a non-empty string."
     )
     assert "Traceback" not in result.stderr
+
+
+def test_invalid_cji_pattern_exits_2(tmp_path):
+    """A bad --cji-patterns regex is an input error and names that pattern."""
+    result = _run_cji_patterns(tmp_path, '["cji", "[invalid("]')
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr
+    assert "index 1" in result.stderr
+    assert "[invalid(" in result.stderr

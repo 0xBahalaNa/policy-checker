@@ -419,6 +419,16 @@ if __name__ == "__main__":
                     print(f"CJI pattern at index {i} must be a non-empty string.",
                           file=sys.stderr)
                     sys.exit(2)
+            for index, pattern in enumerate(cji_patterns):
+                try:
+                    re.compile(pattern, re.IGNORECASE)
+                except re.error as exc:
+                    print(
+                        f"Invalid regex in {args.cji_patterns} at index "
+                        f"{index}: {pattern!r} ({exc})",
+                        file=sys.stderr,
+                    )
+                    sys.exit(2)
         except FileNotFoundError:
             print(f"{args.cji_patterns} doesn't exist.", file=sys.stderr)
             sys.exit(2)

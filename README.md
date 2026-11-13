@@ -32,7 +32,7 @@ Editable Mermaid source (kept in sync with the fence above): [`docs/architecture
 
 ## Usage
 ```
-python policy_checker.py <filename> [--output text|json]
+python policy_checker.py <filename> [--output text|json] [--cji-patterns <file>]
 ```
 
 ### Examples
@@ -42,6 +42,32 @@ python policy_checker.py policy.json --output json
 python policy_checker.py policy.json --output json > results.json
 ```
 
+## Default CJI Patterns
+
+CJI checks run when a statement `Resource` matches a pattern in `DEFAULT_CJI_PATTERNS`. Each pattern is a regular expression. Matching is case-insensitive. Patterns are unanchored, so a pattern matches any part of the ARN.
+
+The default set is:
+
+- `cji`
+- `criminal-justice`
+- `criminal_justice`
+- `cj-data`
+- `cj-info`
+
+Before v1.2.0 the default was `cji` and `criminal-justice`. v1.2.0 added `criminal_justice`, `cj-data`, and `cj-info`. A policy that passed on v1.1.0 can fail on v1.2.0. The ARN `arn:aws:s3:::old-cj-info-archive/*` matches `cj-info`. An Allow on that ARN with no `aws:MultiFactorAuthPresent` condition reports FAIL `cji_missing_mfa`. The checker then exits 1.
+
+`--cji-patterns` replaces the default set. It does not add to it. The file must be a JSON array of pattern strings.
+
+To keep the v1.1.0 set, save the array below as `cji-patterns.json`.
+
+```json
+["cji", "criminal-justice"]
+```
+
+```
+python policy_checker.py policy.json --cji-patterns cji-patterns.json
+```
+
 ## What It Does
 - Loads a JSON policy file.
 - Iterates over the `Statement` entries.
@@ -49,7 +75,7 @@ python policy_checker.py policy.json --output json > results.json
     - `Action` is `*`
     - `Resource` is `*`
     - Service-level wildcards (e.g., `s3:*`, `iam:*`)
-- Performs CJIS v6.1 checks on CJI-tagged resources:
+- Performs CJIS v6.1 checks when a `Resource` ARN matches the default CJI patterns:
     - Missing MFA condition (`aws:MultiFactorAuthPresent`)
     - Cross-account access without org restriction
 - Maps findings to NIST 800-53 and CJIS v6.1 compliance controls.

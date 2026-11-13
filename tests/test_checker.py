@@ -11,8 +11,13 @@ Run the full suite with:
     pytest
 """
 
-from policy_checker import check_policy, check_cjis_policy, enrich_findings
+import json
+import subprocess
+import sys
 from datetime import datetime
+from pathlib import Path
+
+from policy_checker import check_policy, check_cjis_policy, enrich_findings
 
 def test_enrich_findings_timestamp_format():
     """Timestamp should be valid ISO 8601."""
@@ -741,3 +746,56 @@ def test_cjis_regex_pattern_supported():
     }
     findings = check_cjis_policy(policy, cji_patterns=["law-enforcement-\\d+"])
     assert any(f["type"] == "cji_missing_mfa" for f in findings)
+
+
+def _cji_only_policy(tmp_path):
+    policy = {
+        "Statement": [
+            {
+                "Sid": "CJIAccessNoMFA",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*",
+            }
+        ]
+    }
+    policy_path = tmp_path / "policy.json"
+    policy_path.write_text(json.dumps(policy), encoding="utf-8")
+    return policy_path
+
+
+def _run_checker(policy_path, *extra):
+    script = Path(__file__).resolve().parents[1] / "policy_checker.py"
+    return subprocess.run(
+        [sys.executable, str(script), str(policy_path), *extra],
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_cli_rejects_empty_cji_patterns_list(tmp_path):
+    policy_path = _cji_only_policy(tmp_path)
+    patterns_path = tmp_path / "patterns.json"
+    patterns_path.write_text("[]\n", encoding="utf-8")
+
+    bare = _run_checker(policy_path)
+    assert bare.returncode == 1
+    assert "CJI resource access without MFA" in bare.stdout
+
+    empty = _run_checker(policy_path, "--cji-patterns", str(patterns_path))
+    assert empty.returncode == 2
+    assert empty.stderr.strip() == (
+        "CJI patterns file must contain at least one pattern."
+    )
+    assert "0 issues found" not in empty.stdout
+
+
+def test_cli_cji_patterns_list_still_runs_checks(tmp_path):
+    policy_path = _cji_only_policy(tmp_path)
+    patterns_path = tmp_path / "patterns.json"
+    patterns_path.write_text(json.dumps(["cji"]), encoding="utf-8")
+
+    result = _run_checker(policy_path, "--cji-patterns", str(patterns_path))
+    assert result.returncode == 1
+    assert "CJI resource access without MFA" in result.stdout
+    assert result.stderr == ""

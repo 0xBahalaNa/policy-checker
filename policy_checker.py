@@ -401,6 +401,10 @@ if __name__ == "__main__":
                 print("CJI patterns file must contain a JSON array.",
                       file=sys.stderr)
                 sys.exit(2)
+            if not cji_patterns:
+                print("CJI patterns file must contain at least one pattern.",
+                      file=sys.stderr)
+                sys.exit(2)
         except FileNotFoundError:
             print(f"{args.cji_patterns} doesn't exist.", file=sys.stderr)
             sys.exit(2)

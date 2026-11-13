@@ -389,7 +389,8 @@ if __name__ == "__main__":
         "--cji-patterns",
         help="Path to a JSON file containing a list of regex patterns (NOT"
              " literal substrings - escape ., [, (, ?, etc. with a"
-             " backslash) for identifying CJI resources. Overrides the"
+             " backslash) for identifying CJI resources. JSON needs the"
+             " backslash doubled, e.g. \"my\\\\.bucket\". Overrides the"
              " built-in defaults."
     )
     args = parser.parse_args()

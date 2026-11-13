@@ -49,48 +49,6 @@ DEFAULT_CJI_PATTERNS = (
     "cj-info",
 )
 
-# Metacharacters that mean a CJI pattern is a regex, not a literal name.
-_REGEX_METACHAR = re.compile(r"[\\.^$*+?{}[\]|()]")
-
-
-def _exclusion_covers_name(exclusion, name):
-    """Return True when every string containing name matches this IAM exclusion."""
-    if not isinstance(exclusion, str) or not isinstance(name, str) or name == "":
-        return False
-    if set(exclusion) == {"*"}:
-        return True
-    # "?" fixes a character width, so the exclusion cannot cover every name.
-    if "?" in exclusion or not exclusion.startswith("*") or not exclusion.endswith("*"):
-        return False
-    literals = [part for part in exclusion.split("*") if part]
-    if not literals:
-        return True
-    folded = name.casefold()
-    cursor = 0
-    for literal in literals:
-        folded_literal = literal.casefold()
-        found = folded.find(folded_literal, cursor)
-        if found < 0:
-            return False
-        cursor = found + len(folded_literal)
-    return True
-
-def _not_resource_grants_cji(not_resources, cji_patterns):
-    """Return True when an Allow NotResource still grants a configured CJI name."""
-    if not not_resources:
-        return False
-    strings = [item for item in not_resources if isinstance(item, str)]
-    if len(strings) != len(not_resources):
-        return True
-    if any(item == "*" for item in strings):
-        return False
-    for pattern in cji_patterns:
-        if not isinstance(pattern, str) or _REGEX_METACHAR.search(pattern):
-            return True
-        if not any(_exclusion_covers_name(item, pattern) for item in strings):
-            return True
-    return False
-
 def check_policy(policy):
     """
     Check a parsed IAM policy dictionary for overly permissive statements.
@@ -234,8 +192,9 @@ def check_cjis_policy(policy, cji_patterns=None):
         - NotAction or NotPrincipal on a statement that grants CJI access
 
     An Allow statement grants CJI access when a Resource value matches a
-    CJI pattern, or when NotResource does not exclude every configured
-    CJI name. NotResource "*" excludes every resource.
+    CJI pattern, or when it uses NotResource with anything other than "*".
+    The checker can't tell which resources an exclusion leaves in, so it
+    assumes CJI is reachable. NotResource "*" excludes every resource.
 
     Args:
         policy: A dictionary representing a parsed IAM policy JSON.
@@ -306,9 +265,10 @@ def check_cjis_policy(policy, cji_patterns=None):
             for r in resources
             for pattern in compiled_patterns
         )
-        if not has_cji_resource and not _not_resource_grants_cji(
-            not_resources, cji_patterns
-        ):
+        # NotResource grants everything except what it lists. Unless it
+        # lists "*", treat it as reaching CJI.
+        grants_by_exclusion = bool(not_resources) and "*" not in not_resources
+        if not has_cji_resource and not grants_by_exclusion:
             continue
 
         # CJIS IA-2: CJI resources should require MFA.

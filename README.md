@@ -44,7 +44,7 @@ python policy_checker.py policy.json --output json > results.json
 
 ## Default CJI Patterns
 
-CJI checks run when a statement `Resource` matches a pattern in `DEFAULT_CJI_PATTERNS`. Each pattern is a regular expression. Matching is case-insensitive. Patterns are unanchored, so a pattern matches any part of the ARN.
+CJI checks run when a statement `Resource` matches a pattern in `DEFAULT_CJI_PATTERNS`. An Allow statement with `NotResource` set to anything other than `"*"` also gets the CJI checks: it grants everything except what it lists, and the checker can't tell whether CJI is left in, so it assumes it is. Each pattern is a regular expression. Matching is case-insensitive. Patterns are unanchored, so a pattern matches any part of the ARN.
 
 The default set is:
 

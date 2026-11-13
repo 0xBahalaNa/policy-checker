@@ -476,6 +476,209 @@ def test_cjis_not_principal_flagged():
     assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "not_principal")
 
 
+def test_cjis_not_resource_cji_arn_requires_mfa():
+    """NotResource naming a CJI ARN still grants other CJI resources."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NotResourceCJI",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": [
+                    "arn:aws:s3:::cji-data-bucket/*",
+                    "arn:aws:s3:::cji-evidence-store/*"
+                ]
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_missing_mfa" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "cji_missing_mfa")
+
+
+def test_cjis_not_resource_exclusion_grants_cji():
+    """NotResource on a non-CJI ARN grants every CJI bucket by exclusion."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NotResourceBackups",
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "NotResource": "arn:aws:s3:::backups/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_missing_mfa" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "cji_missing_mfa")
+
+
+def test_cjis_not_resource_with_mfa_clean():
+    """NotResource grant with MFA should not raise the IA-2 finding."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NotResourceBackupsMFA",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": "arn:aws:s3:::backups/*",
+                "Condition": {
+                    "Bool": {"aws:MultiFactorAuthPresent": "true"}
+                }
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert findings == []
+
+
+def test_cjis_not_resource_not_action():
+    """NotAction on a NotResource grant should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NotResourceNotAction",
+                "Effect": "Allow",
+                "NotAction": "s3:GetObject",
+                "NotResource": "arn:aws:s3:::cji-data-bucket/*",
+                "Condition": {
+                    "Bool": {"aws:MultiFactorAuthPresent": "true"}
+                }
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "not_action" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "not_action")
+
+
+def test_cjis_not_resource_not_principal():
+    """NotPrincipal on a NotResource grant should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NotResourceNotPrincipal",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": "arn:aws:s3:::cji-data-bucket/*",
+                "NotPrincipal": {"AWS": "arn:aws:iam::123456789012:root"},
+                "Condition": {
+                    "Bool": {"aws:MultiFactorAuthPresent": "true"}
+                }
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "not_principal" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "not_principal")
+
+
+def test_cjis_not_resource_cross_account():
+    """Cross-account principal on a NotResource grant should be WARN."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NotResourceCrossAccount",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": "arn:aws:s3:::criminal-justice-records/*",
+                "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                "Condition": {
+                    "Bool": {"aws:MultiFactorAuthPresent": "true"}
+                }
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_cross_account" for f in findings)
+    assert any(f["severity"] == "WARN" for f in findings if f["type"] == "cji_cross_account")
+
+
+def test_cjis_not_resource_public_access():
+    """Principal * on a NotResource grant should be FAIL."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NotResourcePublic",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": "arn:aws:s3:::backups/*",
+                "Principal": "*",
+                "Condition": {
+                    "Bool": {"aws:MultiFactorAuthPresent": "true"}
+                }
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_public_access" for f in findings)
+    assert any(f["severity"] == "FAIL" for f in findings if f["type"] == "cji_public_access")
+
+
+def test_cjis_not_resource_star_grants_nothing():
+    """NotResource * matches no resource, so CJIS controls do not apply."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NotResourceStar",
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "NotResource": "*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert findings == []
+
+
+def test_cjis_not_resource_partial_name_exclusion_still_grants_cji():
+    """Excluding only the cji token still grants the other CJI names."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "ExcludeOnlyCjiToken",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": "*cji*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert any(f["type"] == "cji_missing_mfa" for f in findings)
+
+
+def test_cjis_not_resource_star_in_list_grants_nothing():
+    """A NotResource list that includes "*" still excludes every resource."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "NotResourceStarInList",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "NotResource": ["*", "arn:aws:s3:::backups/*"]
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert findings == []
+
+
+def test_cjis_deny_not_resource_skipped():
+    """Deny with NotResource should stay outside the CJIS grant checks."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "DenyNotResource",
+                "Effect": "Deny",
+                "Action": "s3:*",
+                "NotResource": "arn:aws:s3:::backups/*"
+            }
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    assert findings == []
+
+
 # --- Effect validation tests (check_policy) ---
 
 def test_missing_effect_flagged():

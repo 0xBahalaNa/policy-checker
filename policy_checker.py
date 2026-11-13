@@ -189,6 +189,12 @@ def check_cjis_policy(policy, cji_patterns=None):
     Checks for:
         - Policies accessing CJI resources without MFA conditions (IA-2)
         - Policies allowing cross-account access to CJI resources (AC-2)
+        - NotAction or NotPrincipal on a statement that grants CJI access
+
+    An Allow statement grants CJI access when a Resource value matches a
+    CJI pattern, or when it uses NotResource with anything other than "*".
+    The checker can't tell which resources an exclusion leaves in, so it
+    assumes CJI is reachable. NotResource "*" excludes every resource.
 
     Args:
         policy: A dictionary representing a parsed IAM policy JSON.
@@ -231,6 +237,7 @@ def check_cjis_policy(policy, cji_patterns=None):
             continue
 
         resource = statement.get("Resource")
+        not_resource = statement.get("NotResource")
         condition = statement.get("Condition", {})
 
         # Normalize resource to a list for consistent checking.
@@ -239,6 +246,16 @@ def check_cjis_policy(policy, cji_patterns=None):
         elif isinstance(resource, list):
             resources = resource
         else:
+            resources = []
+
+        if isinstance(not_resource, str):
+            not_resources = [not_resource]
+        elif isinstance(not_resource, list):
+            not_resources = not_resource
+        else:
+            not_resources = []
+
+        if not resources and not not_resources:
             continue
 
         # Check if any resource references CJI data by matching against the
@@ -248,7 +265,10 @@ def check_cjis_policy(policy, cji_patterns=None):
             for r in resources
             for pattern in compiled_patterns
         )
-        if not has_cji_resource:
+        # NotResource grants everything except what it lists. Unless it
+        # lists "*", treat it as reaching CJI.
+        grants_by_exclusion = bool(not_resources) and "*" not in not_resources
+        if not has_cji_resource and not grants_by_exclusion:
             continue
 
         # CJIS IA-2: CJI resources should require MFA.

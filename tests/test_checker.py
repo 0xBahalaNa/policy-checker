@@ -1,11 +1,12 @@
 """
 Unit tests for policy_checker.py.
 
-Covers four areas:
+Covers five areas:
     1. Basic wildcard detection   — Action "*", Resource "*", service-level wildcards (e.g., "s3:*")
     2. Effect field validation    — missing, misspelled, or invalid Effect values (CM-6)
     3. CJIS v6.1 compliance       — MFA requirement (IA-2), cross-account access (AC-2)
     4. Finding enrichment         — timestamp format, framework/control_id metadata
+    5. CLI input errors           — --cji-patterns file failures exit 2
 
 Run the full suite with:
     pytest
@@ -16,6 +17,8 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+
+import pytest
 
 from policy_checker import check_policy, check_cjis_policy, enrich_findings
 
@@ -888,3 +891,40 @@ def test_invalid_cji_pattern_exits_2(tmp_path):
     assert "Traceback" not in result.stderr
     assert "index 1" in result.stderr
     assert "[invalid(" in result.stderr
+
+
+def _assert_patterns_file_error(result, path):
+    assert result.returncode == 2
+    assert str(path) in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_cji_patterns_unreadable_file(tmp_path):
+    """An unreadable --cji-patterns file exits 2 with a stderr message."""
+    policy_path = _cji_only_policy(tmp_path)
+    patterns_path = tmp_path / "patterns.json"
+    patterns_path.write_text('["cji"]', encoding="utf-8")
+    patterns_path.chmod(0)
+    try:
+        with open(patterns_path, encoding="utf-8"):
+            pytest.skip("this process can read a mode-000 file")
+    except PermissionError:
+        pass
+    result = _run_checker(policy_path, "--cji-patterns", str(patterns_path))
+    _assert_patterns_file_error(result, patterns_path)
+
+
+def test_cji_patterns_directory(tmp_path):
+    """A directory passed to --cji-patterns exits 2 with a stderr message."""
+    policy_path = _cji_only_policy(tmp_path)
+    result = _run_checker(policy_path, "--cji-patterns", str(tmp_path))
+    _assert_patterns_file_error(result, tmp_path)
+
+
+def test_cji_patterns_undecodable_file(tmp_path):
+    """A non-UTF-8 --cji-patterns file exits 2 with a stderr message."""
+    policy_path = _cji_only_policy(tmp_path)
+    patterns_path = tmp_path / "patterns.json"
+    patterns_path.write_bytes(b"\xff\xfe")
+    result = _run_checker(policy_path, "--cji-patterns", str(patterns_path))
+    _assert_patterns_file_error(result, patterns_path)

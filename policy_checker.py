@@ -316,7 +316,7 @@ def check_cjis_policy(policy, cji_patterns=None):
                 if isinstance(principals, str):
                     principals = [principals]
             for p in principals:
-                if ":root" in p and "arn:aws:iam::" in p:
+                if isinstance(p, str) and ":root" in p and "arn:aws:iam::" in p:
                     account_condition = condition.get("StringEquals", {}).get("aws:PrincipalOrgID")
                     if not account_condition:
                         findings.append({

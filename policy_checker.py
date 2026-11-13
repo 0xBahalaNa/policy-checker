@@ -192,8 +192,10 @@ def check_cjis_policy(policy, cji_patterns=None):
 
     Args:
         policy: A dictionary representing a parsed IAM policy JSON.
-        cji_patterns: Optional list of regex pattern strings for identifying
-                      CJI resources. Defaults to DEFAULT_CJI_PATTERNS.
+        cji_patterns: Optional list of regex pattern strings (NOT literal
+                      substrings - escape ., [, (, ?, etc. with a
+                      backslash) for identifying CJI resources. Defaults to
+                      DEFAULT_CJI_PATTERNS.
 
     Returns:
         A list of finding dictionaries with the same structure as check_policy().
@@ -385,8 +387,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--cji-patterns",
-        help="Path to a JSON file containing a list of regex patterns for"
-             " identifying CJI resources. Overrides the built-in defaults."
+        help="Path to a JSON file containing a list of regex patterns (NOT"
+             " literal substrings - escape ., [, (, ?, etc. with a"
+             " backslash) for identifying CJI resources. JSON needs the"
+             " backslash doubled, e.g. \"my\\\\.bucket\". Overrides the"
+             " built-in defaults."
     )
     args = parser.parse_args()
     filename = args.filename

@@ -1059,6 +1059,14 @@ def _run_cji_patterns(tmp_path, patterns_json):
     )
 
 
+def test_cji_patterns_rejects_non_array(tmp_path):
+    patterns = tmp_path / "patterns.json"
+    result = _run_cji_patterns(tmp_path, '{"not": "an array"}')
+    assert result.returncode == 2
+    assert result.stderr.strip() == f"{patterns} must contain a JSON array."
+    assert "Traceback" not in result.stderr
+
+
 def test_cji_patterns_rejects_non_string_element(tmp_path):
     result = _run_cji_patterns(tmp_path, "[123]")
     assert result.returncode == 2

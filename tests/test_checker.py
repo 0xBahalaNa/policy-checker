@@ -1036,6 +1036,17 @@ def test_cli_cji_patterns_list_still_runs_checks(tmp_path):
     assert result.stderr == ""
 
 
+def test_cji_patterns_utf8_bom_still_runs_checks(tmp_path):
+    """A UTF-8 BOM on a valid patterns file is not invalid JSON."""
+    policy_path = _cji_only_policy(tmp_path)
+    patterns_path = tmp_path / "patterns.json"
+    patterns_path.write_bytes(b'\xef\xbb\xbf["cji"]\n')
+    result = _run_checker(policy_path, "--cji-patterns", str(patterns_path))
+    assert result.returncode == 1
+    assert "CJI resource access without MFA" in result.stdout
+    assert result.stderr == ""
+
+
 def _run_cji_patterns(tmp_path, patterns_json):
     patterns = tmp_path / "patterns.json"
     patterns.write_text(patterns_json, encoding="utf-8")

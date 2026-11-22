@@ -422,7 +422,7 @@ if __name__ == "__main__":
     cji_patterns = None
     if args.cji_patterns is not None:
         try:
-            with open(args.cji_patterns, "r", encoding="utf-8") as f:
+            with open(args.cji_patterns, "r", encoding="utf-8-sig") as f:
                 cji_patterns = json.load(f)
             if not isinstance(cji_patterns, list):
                 print("CJI patterns file must contain a JSON array.",

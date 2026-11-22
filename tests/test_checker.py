@@ -1054,6 +1054,21 @@ def test_cli_rejects_empty_cji_patterns_list(tmp_path):
     assert "0 issues found" not in empty.stdout
 
 
+def test_cli_rejects_empty_cji_patterns_argument(tmp_path):
+    policy_path = _cji_only_policy(tmp_path)
+
+    bare = _run_checker(policy_path)
+    assert bare.returncode == 1
+    assert "CJI resource access without MFA" in bare.stdout
+
+    empty = _run_checker(policy_path, "--cji-patterns", "")
+    assert empty.returncode == 2
+    assert empty.stderr.strip() == "doesn't exist."
+    assert "Traceback" not in empty.stderr
+    assert "CJI resource access without MFA" not in empty.stdout
+    assert "0 issues found" not in empty.stdout
+
+
 def test_cli_cji_patterns_list_still_runs_checks(tmp_path):
     policy_path = _cji_only_policy(tmp_path)
     patterns_path = tmp_path / "patterns.json"

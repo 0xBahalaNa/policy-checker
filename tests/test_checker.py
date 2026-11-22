@@ -409,6 +409,35 @@ def test_cjis_non_string_aws_principal_keeps_findings():
     assert any(f["type"] == "cji_cross_account" for f in malformed)
 
 
+def test_cjis_non_list_aws_principal_keeps_findings():
+    """A bare non-list Principal.AWS value is skipped and earlier findings stay."""
+    policy = {
+        "Statement": [
+            {
+                "Sid": "EarlierGap",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*",
+            },
+            {
+                "Sid": "MalformedPrincipal",
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::cji-data-bucket/*",
+                "Principal": {
+                    "AWS": 123
+                },
+            },
+        ]
+    }
+    findings = check_cjis_policy(policy)
+    earlier = [f for f in findings if f["sid"] == "EarlierGap"]
+    malformed = [f for f in findings if f["sid"] == "MalformedPrincipal"]
+    assert any(f["type"] == "cji_missing_mfa" for f in earlier)
+    assert any(f["type"] == "cji_missing_mfa" for f in malformed)
+    assert not any(f["type"] == "cji_cross_account" for f in findings)
+
+
 def test_cjis_non_cji_resource_skipped():
     """Non-CJI resources should not trigger CJIS checks."""
     policy = {
